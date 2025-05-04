@@ -150,6 +150,37 @@ Displays analysis results and summaries
 Provides interactive quiz interface
 Implements chat functionality
 
+
+app2.py
+
+Streamlit application.
+Handles PDF upload & temporary storage
+Extracts paper title• Finds the GitHub repository
+Invokes license checker, code scraper, and displays results in expanders
+
+extract_title.py
+Paper‐title extractor using PyMuPDF
+Reads PDF metadata and first‐page text spans
+Filters out arXiv IDs and publication notices
+Picks the top largest‐font, all‐caps line as the title
+
+github_finder.py
+Minimal GitHub‐search agent
+Queries GitHub’s Search API by paper title• Fuzzy‐matches repo names to the title• Validates the selected repo URL with an HTTP HEAD
+
+code_scraper.py
+Scrapes and comments code from a GitHub repo.
+Lists .py & .ipynb files via GitHub’s Trees API
+Fetches raw code and notebook cells 
+Uses OpenAI’s Chat API to wrap each snippet in a fenced block and add a step-by-step explanation
+Summarizes the README and aggregates all comments
+
+license_checker.pyLicense & dependency inspector.
+Fetches the project’s license via GitHub’s 
+License API and displays an SPDX badge
+Parses pyproject.toml, setup.py, or requirements.txt for Python dependencies
+Builds a Markdown table of packages with PyPI links
+
 Project Structure
 scientific-paper-assistant-ai/
 ├── paper_analyzer2.py         # Core PDF analysis
