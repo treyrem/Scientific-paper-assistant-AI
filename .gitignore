@@ -2,4 +2,4 @@
 /api_keys
 /.streamlit
 /.vscode
-/__pycache__
+/__pycache__model_final.pth
