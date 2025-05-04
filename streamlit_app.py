@@ -1551,21 +1551,33 @@ if st:
                     st.write(analysis_obj.get_extractive_summaries())
                 with st.expander("Show Identified Sections & Content"):
                     for sec_type, sec_data in analysis_obj.sections.items():
-                        if isinstance(sec_data, PaperSection):
-                            st.markdown(
-                                f"**{sec_type.capitalize()} (Title: {sec_data.title}, Pages: {sec_data.page_numbers})**"
-                            )
-                            st.text_area(
-                                f"Content_{sec_type}",
-                                sec_data.content,
-                                height=150,
-                                key=f"sec_content_{sec_type}",
-                            )
+                        try:
+                            if isinstance(sec_data, PaperSection):
+                                st.markdown(
+                                    f"**{sec_type.capitalize()} (Title: {sec_data.title}, Pages: {sec_data.page_numbers})**"
+                                )
+                                st.text_area(
+                                    f"Content_{sec_type}",
+                                    sec_data.content,
+                                    height=150,
+                                    key=f"sec_content_{sec_type}",
+                                )
+                            else:
+                                st.markdown(f"**{sec_type.capitalize()}** (Raw Data)")
+                                # Try to make sure it's valid JSON
+                                if isinstance(sec_data, dict) or isinstance(
+                                    sec_data, list
+                                ):
+                                    st.json(sec_data, expanded=False)
+                                else:
+                                    st.text(f"Data: {str(sec_data)}")
+                        except Exception as e:
+                            st.error(f"Error displaying section {sec_type}: {e}")
+                            st.text(f"Raw data: {str(sec_data)}")
                         else:
-                            st.markdown(f"**{sec_type.capitalize()}** (Raw Data)")
-                            st.json(sec_data, expanded=False)
-        else:
-            st.info("Upload a PDF and click 'Analyze Paper' to see results.")
+                            st.info(
+                                "Upload a PDF and click 'Analyze Paper' to see results."
+                            )
 
     # --- Tab 2: Quiz ---
     with tab2:
