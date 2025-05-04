@@ -40,7 +40,7 @@ streamlit
 Installation
 
 Clone the repository:
-git clone https://github.com/yourusername/scientific-paper-assistant-ai.git
+git clone https://github.com/treyrem/scientific-paper-assistant-ai.git
 cd scientific-paper-assistant-ai
 
 Install dependencies:
