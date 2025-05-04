@@ -57,7 +57,7 @@ OPENAI_API_KEY=your_api_key_here
 Usage
 Command Line Tools
 Paper Analysis
-bashpython paper_analyzer2.py path/to/paper.pdf --output output/path.json
+bash python paper_analyzer2.py path/to/paper.pdf --output output/path.json
 Optional arguments:
 
 --no-gpu: Disable GPU usage
@@ -87,23 +87,68 @@ Analysis & Summary: Upload and analyze papers
 Quiz: Generate questions about the paper
 Chatbot: Ask questions about the paper's content
 
-How It Works
+How the System Works
 PDF Processing
 
-Uses PDF layout analysis to identify sections and structure
-Examines font sizes, boldness, and spatial layout
-Applies heuristics to extract metadata
-Uses machine learning for keyword extraction
+The system analyzes PDFs using layout analysis to identify sections by detecting:
 
-Summarization
+Font size differences
+Bold text
+Section header patterns
+Content organization
 
-Extractive Summarization: Uses TF-IDF to identify key sentences
-Synthesized Summarization: Uses OpenAI to create coherent summaries from key sentences
+Key Features
 
-Chatbot & Quiz Generation
+Metadata Extraction: Extracts title, authors, publication year, and DOI.
+Section Identification: Recognizes standard paper sections (abstract, introduction, methods, results, etc.) based on layout and text patterns.
+Summarization: Uses two approaches:
 
-Uses the paper analysis as context for OpenAI to generate responses and questions
-Maintains conversation history for coherent chat experiences
+Extractive summarization using TF-IDF to identify important sentences
+Synthesized summarization using OpenAI to create coherent summaries
+
+
+Key Concept Extraction: Identifies important terms and provides definitions.
+Interactive Chat: Allows asking questions about a paper with relevant answers.
+Quiz Generation: Creates multiple-choice questions to test understanding.
+
+OpenAI Integration
+The system has optional integration with OpenAI for enhanced features:
+
+Improved summaries
+Quiz generation
+Chatbot functionality
+
+It loads the API key from a .env file located at a specific path.
+Implementation Details
+paper_analyzer2.py
+
+Uses PyMuPDF (fitz) for PDF text extraction
+Implements layout analysis to identify sections
+Extracts metadata using regex patterns
+Uses TF-IDF for extractive summarization
+Integrates with OpenAI for synthesized summaries
+
+paper_chatbot.py
+
+Takes analysis JSON as input
+Prepares paper context for OpenAI
+Manages conversation history
+Handles API interaction
+
+quiz_generator.py
+
+Takes analysis JSON as input
+Constructs prompts for OpenAI to generate quiz questions
+Parses responses into structured question format
+Saves quizzes as JSON
+
+streamlit_app.py
+
+Provides a web interface with tabs for different functions
+Handles file uploads and temporary storage
+Displays analysis results and summaries
+Provides interactive quiz interface
+Implements chat functionality
 
 Project Structure
 scientific-paper-assistant-ai/
