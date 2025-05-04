@@ -1,6 +1,5 @@
 # Core ML & vision
-torch>=1.10.0
-torchvision>=0.11.0
+
 pdf2image
 Pillow
 numpy
@@ -34,3 +33,15 @@ opencv-python     # image I/O & processing
 #   "git+https://github.com/facebookresearch/detectron2.git@main"
 
 
+#layoutparser>=0.3.4
+pdfminer.six>=20221105
+python-dotenv>=1.0.0
+crewai
+langchain
+langchain-openai
+langchain-community
+openai
+requests
+pandas
+altair
+duckduckgo-search>=4.1.0
