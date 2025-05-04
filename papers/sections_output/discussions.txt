@@ -1,0 +1,562 @@
+Comparing Eq. (2) and (5), we observe that both BERT and XLNet perform partial prediction, i.e.,
+only predicting a subset of tokens in the sequence. This is a necessary choice for BERT because if all
+tokens are masked, it is impossible to make any meaningful predictions. In addition, for both BERT
+and XLNet, partial prediction plays a role of reducing optimization difficulty by only predicting
+tokens with sufficient context. However, the independence assumption discussed in Section 2.1
+disables BERT to model dependency between targets.
+To better understand the difference, let’s consider a concrete example [New, York, is, a, city]. Suppose
+both BERT and XLNet select the two tokens [New, York] as the prediction targets and maximize
+log p(New York | is a city). Also suppose that XLNet samples the factorization order [is, a, city,
+New, York]. In this case, BERT and XLNet respectively reduce to the following objectives:
+JBERT = log p(New | is a city) + log p(York | is a city),
+JXLNet = log p(New | is a city) + log p(York | New, is a city).
+Notice that XLNet is able to capture the dependency between the pair (New, York), which is omitted
+by BERT. Although in this example, BERT learns some dependency pairs such as (New, city) and
+(York, city), it is obvious that XLNet always learns more dependency pairs given the same target and
+contains “denser” effective training signals.
+For more formal analysis and further discussion, please refer to Appendix A.5.
+In this section, we will discuss several favorable
+properties of preﬁx-tuning and some open prob-
+lems.
+8.1
+Personalization
+As we note in §1, preﬁx-tuning is advantageous
+when there are a large number of tasks that needs
+to be trained independently.
+One practical setting is
+user privacy (Shokri and Shmatikov, 2015; McMa-
+han et al., 2016).
+In order to preserve user privacy,
+each user’s data needs to be separated and a per-
+sonalized model needs to be trained independently
+for each user.
+Consequently, each user can be re-
+garded as an independent task.
+If there are millions
+of users, preﬁx-tuning can scale to this setting and
+maintain modularity, enabling ﬂexible addition or
+deletion of users by adding or deleting their pre-
+ﬁxes without cross-contamination.
+8.2
+Batching Across Users
+Under the same personalization setting, preﬁx-
+tuning allows batching different users’ queries even
+though they are backed by different preﬁxes.
+When
+multiple users query a cloud GPU device with their
+inputs, it is computationally efﬁcient to put these
+users in the same batch.
+Preﬁx-tuning keeps the
+shared LM intact; consequently, batching requires
+a simple step of prepending the personalized preﬁx
+to user input, and all the remaining computation
+is unchanged.
+In contrast, we can’t batch across
+different users in adapter-tuning, which has person-
+alized adapters between shared Transformer layers.
+8.3
+Inductive Bias of Preﬁx-tuning
+Recall that ﬁne-tuning updates all pretrained pa-
+rameters, whereas preﬁx-tuning and adapter-tuning
+preserve them.
+Since the language models are pre-
+trained on general purpose corpus, preserving the
+LM parameters might help generalization to do-
+mains unseen during training.
+In concordance with
+this intuition, we observe that both preﬁx-tuning
+and adapter-tuning have signiﬁcant performance
+gain in extrapolation settings (§6.4); however, the
+reason for such gain is an open question.
+While preﬁx-tuning and adapter-tuning both
+freeze the pretrained parameters, they tune different
+sets of parameters to affect the activation layers of
+the Transformer.
+Recall that preﬁx-tuning keeps the
+LM intact and uses the preﬁx and the pretrained at-
+tention blocks to affect the subsequent activations;
+adapter-tuning inserts trainable modules between
+LM layers, which directly add residual vectors to
+the activations.
+Moreover, we observe that preﬁx-
+tuning requires vastly fewer parameters compared
+to adapter-tuning while maintaining comparable
+performance.
+We think this gain in parameter efﬁ-
+ciency is because preﬁx-tuning keeps the pretrained
+LM intact as much as possible, and therefore ex-
+ploits the LM more than adapter-tuning.
+Concurrent work by Aghajanyan et al.
+(2020)
+uses intrinsic dimension to show that there exists
+a low dimension reparameterization that is as ef-
+fective for ﬁne-tuning as the full parameter space.
+This explains why good accuracy on downstream
+task can be obtained by updating only a small num-
+ber of parameters.
+Our work echoes the ﬁnding by
+showing that good generation performance can be
+attained by updating a very small preﬁx.
+In this paper, we analyzed the extent to which relational inductive bias exists in deep learning
+architectures like MLPs, CNNs, and RNNs, and concluded that while CNNs and RNNs do contain
+relational inductive biases, they cannot naturally handle more structured representations such as
+sets or graphs.
+We advocated for building stronger relational inductive biases into deep learning
+architectures by highlighting an underused deep learning building block called a graph network,
+which performs computations over graph-structured data.
+Our graph network framework uniﬁes
+existing approaches that also operate over graphs, and provides a straightforward interface for
+assembling graph networks into complex, sophisticated architectures.
+5.1
+Combinatorial generalization in graph networks
+The structure of GNs naturally supports combinatorial generalization because they do not perform
+computations strictly at the system level, but also apply shared computations across the entities and
+across the relations as well.
+This allows never-before-seen systems to be reasoned about, because
+they are built from familiar components, in a way that reﬂects von Humboldt’s “inﬁnite use of ﬁnite
+means” (Humboldt, 1836; Chomsky, 1965).
+A number of studies have explored GNs’ capacity for combinatorial generalization.
+Battaglia
+et al.
+(2016) found that GNs trained to make one-step physical state predictions could simulate
+thousands of future time steps, and also exhibit accurate zero-shot transfer to physical systems
+with double, or half, the number of entities experienced during training.
+Sanchez-Gonzalez et al.
+(2018) found similar results in more complex physical control settings, including that GNs trained as
+forward models on simulated multi-joint agents could generalize to agents with new numbers of joints.
+Hamrick et al.
+(2018) and Wang et al.
+(2018b) each found that GN-based decision-making policies
+could transfer to novel numbers of entities as well.
+In combinatorial optimization problems, Bello
+22
+et al.
+(2016); Nowak et al.
+(2017); Dai et al.
+(2017); Kool and Welling (2018) showed that GNs could
+generalize well to problems of much diﬀerent sizes than they had been trained on.
+Similarly, Toyer
+et al.
+(2017) showed generalization to diﬀerent sizes of planning problems, and Hamilton et al.
+(2017)
+showed generalization to producing useful node embeddings for previously unseen data.
+On boolean
+SAT problems, Selsam et al.
+(2018) demonstrated generalization both to diﬀerent problem sizes and
+across problem distributions: their model retained good performance upon strongly modifying the
+distribution of the input graphs and its typical local structure.
+These striking examples of combinatorial generalization are not entirely surprising, given GNs’
+entity- and relation-centric organization, but nonetheless provide important support for the view
+that embracing explicit structure and ﬂexible learning is a viable approach toward realizing better
+sample eﬃciency and generalization in modern AI.
+5.2
+Limitations of graph networks
+One limitation of GNs’ and MPNNs’ form of learned message-passing (Shervashidze et al., 2011)
+is that it cannot be guaranteed to solve some classes of problems, such as discriminating between
+certain non-isomorphic graphs.
+Kondor et al.
+(2018) suggested that covariance7 (Cohen and Welling,
+2016; Kondor and Trivedi, 2018), rather than invariance to permutations of the nodes and edges
+is preferable, and proposed “covariant compositional networks” which can preserve structural
+information, and allow it to be ignored only if desired.
+More generally, while graphs are a powerful way of representing structure information, they
+have limits.
+For example, notions like recursion, control ﬂow, and conditional iteration are not
+straightforward to represent with graphs, and, minimally, require additional assumptions (e.g., in
+interpreting abstract syntax trees).
+Programs and more “computer-like” processing can oﬀer greater
+representational and computational expressivity with respect to these notions, and some have argued
+they are an important component of human cognition (Tenenbaum et al., 2011; Lake et al., 2015;
+Goodman et al., 2015).
+5.3
+Open questions
+Although we are excited about the potential impacts that graph networks can have, we caution that
+these models are only one step forward.
+Realizing the full potential of graph networks will likely be
+far more challenging than organizing their behavior under one framework, and indeed, there are a
+number of unanswered questions regarding the best ways to use graph networks.
+One pressing question is: where do the graphs come from that graph networks operate over?
+One of the hallmarks of deep learning has been its ability to perform complex computations over
+raw sensory data, such as images and text, yet it is unclear the best ways to convert sensory data
+into more structured representations like graphs.
+One approach (which we have already discussed)
+assumes a fully connected graph structure between spatial or linguistic entities, such as in the
+literature on self-attention (Vaswani et al., 2017; Wang et al., 2018c).
+However, such representations
+may not correspond exactly to the “true” entities (e.g., convolutional features do not directly
+correspond to objects in a scene).
+Moreover, many underlying graph structures are much more
+sparse than a fully connected graph, and it is an open question how to induce this sparsity.
+Several
+lines of active research are exploring these issues (Watters et al., 2017; van Steenkiste et al., 2018;
+Li et al., 2018; Kipf et al., 2018) but as of yet there is no single method which can reliably extract
+discrete entities from sensory data.
+Developing such a method is an exciting challenge for future
+7Covariance means, roughly, that the activations vary in a predictable way as a function of the ordering of the
+incoming edges.
+23
+research, and once solved will likely open the door for much more powerful and ﬂexible reasoning
+algorithms.
+A related question is how to adaptively modify graph structures during the course of computation.
+For example, if an object fractures into multiple pieces, a node representing that object also ought
+to split into multiple nodes.
+Similarly, it might be useful to only represent edges between objects
+that are in contact, thus requiring the ability to add or remove edges depending on context.
+The
+question of how to support this type of adaptivity is also actively being researched, and in particular,
+some of the methods used for identifying the underlying structure of a graph may be applicable (e.g.
+Li et al., 2018; Kipf et al., 2018).
+Human cognition makes the strong assumption that the world is composed of objects and
+relations (Spelke and Kinzler, 2007), and because GNs make a similar assumption, their behavior
+tends to be more interpretable.
+The entities and relations that GNs operate over often correspond
+to things that humans understand (such as physical objects), thus supporting more interpretable
+analysis and visualization (e.g., as in Selsam et al., 2018).
+An interesting direction for future work
+is to further explore the interpretability of the behavior of graph networks.
+5.4
+Integrative approaches for learning and structure
+While our focus here has been on graphs, one takeaway from this paper is less about graphs
+themselves and more about the approach of blending powerful deep learning approaches with
+structured representations.
+We are excited by related approaches which have explored this idea for
+other types of structured representations and computations, such as linguistic trees (Socher et al.,
+2011a,b, 2012, 2013; Tai et al., 2015; Andreas et al., 2016), partial tree traversals in a state-action
+graph (Guez et al., 2018; Farquhar et al., 2018), hierarchical action policies (Andreas et al., 2017),
+multi-agent communication channels (Foerster et al., 2016), “capsules” (Sabour et al., 2017), and
+programs (Parisotto et al., 2017).
+Other methods have attempted to capture diﬀerent types of
+structure by mimicking key hardware and software components in computers and how they transfer
+information between each other, such as persistent slotted storage, registers, memory I/O controllers,
+stacks, and queues (e.g.
+Dyer et al., 2015; Grefenstette et al., 2015; Joulin and Mikolov, 2015;
+Sukhbaatar et al., 2015; Kurach et al., 2016; Graves et al., 2016).
+5.5
+In this paper, we showed that it is possible to use LSTM recurrent networks for NLP tasks such as
+document classiﬁcation.
+Further, we demonstrated that a language model or a sequence autoencoder
+can help stabilize the learning in LSTM recurrent networks.
+On ﬁve benchmarks that we tried,
+LSTMs can reach or surpass the performance levels of all previous baselines.
+Acknowledgements:
+We thank Oriol Vinyals, Ilya Sutskever, Greg Corrado, Vijay Vasudevan,
+Manjunath Kudlur, Rajat Monga, Matthieu Devin, and the Google Brain team for their help.
+References
+[1] R.
+K.
+Ando and T.
+Zhang.
+A framework for learning predictive structures from multiple tasks
+and unlabeled data.
+J.
+Mach.
+Learn.
+Res., 6:1817–1853, December 2005.
+[2] A.
+Cardoso-Cachopo.
+Datasets
+for
+single-label
+text
+categorization.
+http://web.ist.utl.pt/acardoso/datasets/,
+2015.
+[Online;
+accessed
+25-May-2015].
+[3] William Chan, Navdeep Jaitly, Quoc V Le, and Oriol Vinyals.
+Listen, attend and spell.
+arXiv
+preprint arXiv:1508.01211, 2015.
+[4] J.
+Chorowski, D.
+Bahdanau, K.
+Cho, and Y.
+Bengio.
+End-to-end continuous speech recognition
+using attention-based recurrent nn: First results.
+arXiv preprint arXiv:1412.1602, 2014.
+[5] Y.
+Dauphin and Y.
+Bengio.
+Stochastic ratio matching of RBMs for sparse high-dimensional
+inputs.
+In NIPS, 2013.
+[6] F.
+A.
+Gers, J.
+Schmidhuber, and F.
+Cummins.
+Learning to forget: Continual prediction with
+LSTM.
+Neural Computation, 2000.
+[7] K.
+Greff, R.
+K.
+Srivastava, J.
+Koutn´ık, B.
+R.
+Steunebrink, and J.
+Schmidhuber.
+LSTM: A search
+space odyssey.
+In ICML, 2015.
+[8] S.
+Hochreiter, Y.
+Bengio, P.
+Frasconi, and J.
+Schmidhuber.
+Gradient ﬂow in recurrent nets: the
+difﬁculty of learning long-term dependencies.
+A Field Guide to Dynamical Recurrent Neural
+Networks, 2001.
+[9] S.
+Hochreiter and J.
+Schmidhuber.
+Long short-term memory.
+Neural Computation, 1997.
+[10] S.
+Jean, K.
+Cho, R.
+Memisevic, and Y.
+Bengio.
+On using very large target vocabulary for neural
+machine translation.
+In ICML, 2014.
+[11] R.
+Johnson and T.
+Zhang.
+Effective use of word order for text categorization with convolutional
+neural networks.
+In NAACL, 2014.
+8
+[12] Y.
+Kim.
+Convolutional neural networks for sentence classiﬁcation.
+In EMNLP, 2014.
+[13] R.
+Kiros, Y.
+Zhu, R.
+Salakhutdinov, R.
+S.
+Zemel, A.
+Torralba, R.
+Urtasun, and S.
+Fidler.
+Skip-
+thought vectors.
+In NIPS, 2015.
+[14] A.
+Krizhevsky.
+Convolutional deep belief networks on CIFAR-10.
+Technical report, University
+of Toronto, 2010.
+[15] A.
+Krizhevsky, I.
+Sutskever, and G.
+E.
+Hinton.
+Imagenet classiﬁcation with deep convolutional
+neural networks.
+In NIPS, 2012.
+[16] K.
+Lang.
+Newsweeder: Learning to ﬁlter netnews.
+In ICML, 1995.
+[17] H.
+Larochelle, M.
+Mandel, R.
+Pascanu, and Y.
+Bengio.
+Learning algorithms for the classiﬁca-
+tion restricted boltzmann machine.
+JMLR, 2012.
+[18] Q.
+V.
+Le and T.
+Mikolov.
+Distributed representations of sentences and documents.
+In ICML,
+2014.
+[19] J.
+Lehmann, R.
+Isele, M.
+Jakob, A.
+Jentzsch, D.
+Kontokostas, P.
+N.
+Mendes, S.
+Hellmann,
+M.
+Morsey, P.
+van Kleef, S.
+Auer, et al.
+DBpedia – a large-scale, multilingual knowledge base
+extracted from wikipedia.
+Semantic Web, 2014.
+[20] T.
+Luong, I.
+Sutskever, Q.
+V.
+Le, O.
+Vinyals, and W.
+Zaremba.
+Addressing the rare word
+problem in neural machine translation.
+arXiv preprint arXiv:1410.8206, 2014.
+[21] A.
+L.
+Maas, R.
+E.
+Daly, P.
+T.
+Pham, D.
+Huang, A.
+Y.
+Ng, and C.
+Potts.
+Learning word vectors
+for sentiment analysis.
+In ACL, 2011.
+[22] J.
+McAuley and J.
+Leskovec.
+Hidden factors and hidden topics: understanding rating dimen-
+sions with review text.
+In RecSys, pages 165–172.
+ACM, 2013.
+[23] T.
+Mikolov, M.
+Karaﬁ´at, L.
+Burget, J.
+Cernock`y, and S.
+Khudanpur.
+Recurrent neural network
+based language model.
+In INTERSPEECH, 2010.
+[24] J.
+Y.
+H.
+Ng, M.
+J.
+Hausknecht, S.
+Vijayanarasimhan, O.
+Vinyals, R.
+Monga, and G.
+Toderici.
+Beyond short snippets: Deep networks for video classiﬁcation.
+In CVPR, 2015.
+[25] B.
+Pang and L.
+Lee.
+Seeing stars: Exploiting class relationships for sentiment categorization
+with respect to rating scales.
+In ACL, 2005.
+[26] D.
+Rumelhart, G.
+E.
+Hinton, and R.
+J.
+Williams.
+Learning representations by back-propagating
+errors.
+Nature, 1986.
+[27] L.
+Shang, Z.
+Lu, and H.
+Li.
+Neural responding machine for short-text conversation.
+In EMNLP,
+2015.
+[28] R.
+Socher, B.
+Huval, C.
+D.
+Manning, and A.
+Y.
+Ng.
+Semantic compositionality through recur-
+sive matrix-vector spaces.
+In EMNLP, 2012.
+[29] R.
+Socher, A.
+Perelygin, J.
+Y.
+Wu, J.
+Chuang, C.
+D.
+Manning, A.
+Y.
+Ng, and C.
+Potts.
+Recursive
+deep models for semantic compositionality over a sentiment treebank.
+In EMNLP, 2013.
+[30] N.
+Srivastava, E.
+Mansimov, and R.
+Salakhutdinov.
+Unsupervised learning of video represen-
+tations using LSTMs.
+In ICML, 2015.
+[31] I.
+Sutskever, O.
+Vinyals, and Q.
+V.
+Le.
+Sequence to sequence learning with neural networks.
+In NIPS, 2014.
+[32] O.
+Vinyals, L.
+Kaiser, T.
+Koo, S.
+Petrov, I.
+Sutskever, and G.
+Hinton.
+Grammar as a foreign
+language.
+In NIPS, 2015.
+[33] O.
+Vinyals and Q.
+V.
+Le.
+A neural conversational model.
+In ICML Deep Learning Workshop,
+2015.
+[34] O.
+Vinyals, A.
+Toshev, S.
+Bengio, and D.
+Erhan.
+Show and tell: A neural image caption
+generator.
+In CVPR, 2014.
+[35] S.
+I.
+Wang and C.
+D.
+Manning.
+Baselines and bigrams: Simple, good sentiment and topic
+classiﬁcation.
+In ACL, 2012.
+[36] P.
+J.
+Werbos.
+Beyond regression: New tools for prediction and analysis in the behavioral
+sciences.
+PhD thesis, Harvard, 1974.
+9
+[37] W.
+Zaremba, I.
+Sutskever, and O.
+Vinyals.
+Recurrent neural network regularization.
+arXiv
+preprint arXiv:1409.2329, 2014.
+[38] X.
+Zhang and Y.
+LeCun.
+Character-level convolutional networks for text classiﬁcation.
+In
+NIPS, 2015.
+10

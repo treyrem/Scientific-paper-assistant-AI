@@ -1,0 +1,4891 @@
+6.1
+Machine Translation
+On the WMT 2014 English-to-German translation task, the big transformer model (Transformer (big)
+in Table 2) outperforms the best previously reported models (including ensembles) by more than 2.0
+BLEU, establishing a new state-of-the-art BLEU score of 28.4.
+The configuration of this model is
+listed in the bottom line of Table 3.
+Training took 3.5 days on 8 P100 GPUs.
+Even our base model
+surpasses all previously published models and ensembles, at a fraction of the training cost of any of
+the competitive models.
+On the WMT 2014 English-to-French translation task, our big model achieves a BLEU score of 41.0,
+outperforming all of the previously published single models, at less than 1/4 the training cost of the
+previous state-of-the-art model.
+The Transformer (big) model trained for English-to-French used
+dropout rate Pdrop = 0.1, instead of 0.3.
+For the base models, we used a single model obtained by averaging the last 5 checkpoints, which
+were written at 10-minute intervals.
+For the big models, we averaged the last 20 checkpoints.
+We
+used beam search with a beam size of 4 and length penalty α = 0.6 [38].
+These hyperparameters
+were chosen after experimentation on the development set.
+We set the maximum output length during
+inference to input length + 50, but terminate early when possible [38].
+Table 2 summarizes our results and compares our translation quality and training costs to other model
+architectures from the literature.
+We estimate the number of floating point operations used to train a
+model by multiplying the training time, the number of GPUs used, and an estimate of the sustained
+single-precision floating-point capacity of each GPU 5.
+6.2
+Model Variations
+To evaluate the importance of different components of the Transformer, we varied our base model
+in different ways, measuring the change in performance on English-to-German translation on the
+5We used values of 2.8, 3.7, 6.0 and 9.5 TFLOPS for K80, K40, M40 and P100, respectively.
+8
+Table 3: Variations on the Transformer architecture.
+Unlisted values are identical to those of the base
+model.
+All metrics are on the English-to-German translation development set, newstest2013.
+Listed
+perplexities are per-wordpiece, according to our byte-pair encoding, and should not be compared to
+per-word perplexities.
+N
+dmodel
+dff
+h
+dk
+dv
+Pdrop
+ϵls
+train
+PPL
+BLEU
+params
+steps
+(dev)
+(dev)
+×106
+base
+6
+512
+2048
+8
+64
+64
+0.1
+0.1
+100K
+4.92
+25.8
+65
+(A)
+1
+512
+512
+5.29
+24.9
+4
+128
+128
+5.00
+25.5
+16
+32
+32
+4.91
+25.8
+32
+16
+16
+5.01
+25.4
+(B)
+16
+5.16
+25.1
+58
+32
+5.01
+25.4
+60
+(C)
+2
+6.11
+23.7
+36
+4
+5.19
+25.3
+50
+8
+4.88
+25.5
+80
+256
+32
+32
+5.75
+24.5
+28
+1024
+128
+128
+4.66
+26.0
+168
+1024
+5.12
+25.4
+53
+4096
+4.75
+26.2
+90
+(D)
+0.0
+5.77
+24.6
+0.2
+4.95
+25.5
+0.0
+4.67
+25.3
+0.2
+5.47
+25.7
+(E)
+positional embedding instead of sinusoids
+4.92
+25.7
+big
+6
+1024
+4096
+16
+0.3
+300K
+4.33
+26.4
+213
+development set, newstest2013.
+We used beam search as described in the previous section, but no
+checkpoint averaging.
+We present these results in Table 3.
+In Table 3 rows (A), we vary the number of attention heads and the attention key and value dimensions,
+keeping the amount of computation constant, as described in Section 3.2.2.
+While single-head
+attention is 0.9 BLEU worse than the best setting, quality also drops off with too many heads.
+In Table 3 rows (B), we observe that reducing the attention key size dk hurts model quality.
+This
+suggests that determining compatibility is not easy and that a more sophisticated compatibility
+function than dot product may be beneficial.
+We further observe in rows (C) and (D) that, as expected,
+bigger models are better, and dropout is very helpful in avoiding over-fitting.
+In row (E) we replace our
+sinusoidal positional encoding with learned positional embeddings [9], and observe nearly identical
+results to the base model.
+6.3
+English Constituency Parsing
+To evaluate if the Transformer can generalize to other tasks we performed experiments on English
+constituency parsing.
+This task presents specific challenges: the output is subject to strong structural
+constraints and is significantly longer than the input.
+Furthermore, RNN sequence-to-sequence
+models have not been able to attain state-of-the-art results in small-data regimes [37].
+We trained a 4-layer transformer with dmodel = 1024 on the Wall Street Journal (WSJ) portion of the
+Penn Treebank [25], about 40K training sentences.
+We also trained it in a semi-supervised setting,
+using the larger high-confidence and BerkleyParser corpora from with approximately 17M sentences
+[37].
+We used a vocabulary of 16K tokens for the WSJ only setting and a vocabulary of 32K tokens
+for the semi-supervised setting.
+We performed only a small number of experiments to select the dropout, both attention and residual
+(section 5.4), learning rates and beam size on the Section 22 development set, all other parameters
+remained unchanged from the English-to-German base translation model.
+During inference, we
+9
+Table 4: The Transformer generalizes well to English constituency parsing (Results are on Section 23
+of WSJ)
+Parser
+Training
+WSJ 23 F1
+Vinyals & Kaiser el al.
+(2014) [37]
+WSJ only, discriminative
+88.3
+Petrov et al.
+(2006) [29]
+WSJ only, discriminative
+90.4
+Zhu et al.
+(2013) [40]
+WSJ only, discriminative
+90.4
+Dyer et al.
+(2016) [8]
+WSJ only, discriminative
+91.7
+Transformer (4 layers)
+WSJ only, discriminative
+91.3
+Zhu et al.
+(2013) [40]
+semi-supervised
+91.3
+Huang & Harper (2009) [14]
+semi-supervised
+91.3
+McClosky et al.
+(2006) [26]
+semi-supervised
+92.1
+Vinyals & Kaiser el al.
+(2014) [37]
+semi-supervised
+92.1
+Transformer (4 layers)
+semi-supervised
+92.7
+Luong et al.
+(2015) [23]
+multi-task
+93.0
+Dyer et al.
+(2016) [8]
+generative
+93.3
+increased the maximum output length to input length + 300.
+We used a beam size of 21 and α = 0.3
+for both WSJ only and the semi-supervised setting.
+Our results in Table 4 show that despite the lack of task-specific tuning our model performs sur-
+prisingly well, yielding better results than all previously reported models with the exception of the
+Recurrent Neural Network Grammar [8].
+In contrast to RNN sequence-to-sequence models [37], the Transformer outperforms the Berkeley-
+Parser [29] even when training only on the WSJ training set of 40K sentences.
+We present the results in Figure 1.
+We
+use 10 hidden units and run fastText for 5
+epochs with a learning rate selected on a valida-
+tion set from {0.05, 0.1, 0.25, 0.5}.
+On this task,
+adding bigram information improves the perfor-
+mance by 1-4%.
+Overall our accuracy is slightly
+better than char-CNN and char-CRNN and, a bit
+worse than VDCNN.
+Note that we can increase
+the accuracy slightly by using more n-grams, for
+example with trigrams, the performance on Sogou
+goes up to 97.1%.
+Finally, Figure 3 shows that
+our method is competitive with the methods pre-
+sented in Tang et al.
+(2015).
+We tune the hyper-
+parameters on the validation set and observe that
+using n-grams up to 5 leads to the best perfor-
+mance.
+Unlike Tang et al.
+(2015), fastText does
+not use pre-trained word embeddings, which can be
+explained the 1% difference in accuracy.
+Model
+Yelp’13
+Yelp’14
+Yelp’15
+IMDB
+SVM+TF
+59.8
+61.8
+62.4
+40.5
+CNN
+59.7
+61.0
+61.5
+37.5
+Conv-GRNN
+63.7
+65.5
+66.0
+42.5
+LSTM-GRNN
+65.1
+67.1
+67.6
+45.3
+fastText
+64.2
+66.2
+66.6
+45.2
+Table 3: Comparision with Tang et al.
+(2015).
+The hyper-
+parameters are chosen on the validation set.
+We report the test
+accuracy.
+Training time.
+Both char-CNN and VDCNN are
+trained on a NVIDIA Tesla K40 GPU, while our
+models are trained on a CPU using 20 threads.
+Ta-
+ble 2 shows that methods using convolutions are sev-
+eral orders of magnitude slower than fastText.
+While it is possible to have a 10× speed up for
+char-CNN by using more recent CUDA implemen-
+tations of convolutions, fastText takes less than
+a minute to train on these datasets.
+The GRNNs
+method of Tang et al.
+(2015) takes around 12 hours
+per epoch on CPU with a single thread.
+Our speed-
+Input
+Prediction
+Tags
+taiyoucon 2011 digitals: individuals digital pho-
+tos from the anime convention taiyoucon 2011 in
+mesa, arizona.
+if you know the model and/or the
+character, please comment.
+#cosplay
+#24mm
+#anime
+#animeconvention
+#arizona #canon #con #convention
+#cos #cosplay #costume #mesa #play
+#taiyou #taiyoucon
+2012 twin cities pride 2012 twin cities pride pa-
+rade
+#minneapolis
+#2012twincitiesprideparade
+#min-
+neapolis #mn #usa
+beagle enjoys the snowfall
+#snow
+#2007 #beagle #hillsboro #january
+#maddison #maddy #oregon #snow
+christmas
+#christmas
+#cameraphone #mobile
+euclid avenue
+#newyorkcity
+#cleveland #euclidavenue
+Table 4: Examples from the validation set of YFCC100M dataset obtained with fastText with 200 hidden units and bigrams.
+We show a few correct and incorrect tag predictions.
+up compared to neural network based methods in-
+creases with the size of the dataset, going up to at
+least a 15,000× speed-up.
+3.2
+Tag prediction
+Dataset and baselines.
+To test scalability of
+our approach,
+further evaluation is carried on
+the
+YFCC100M
+dataset
+(Thomee et al., 2016)
+which consists of almost 100M images with cap-
+tions, titles and tags.
+We focus on predicting the
+tags according to the title and caption (we do not
+use the images).
+We remove the words and tags
+occurring less than 100 times and split the data
+into a train, validation and test set.
+The train
+set contains 91,188,648 examples (1.5B tokens).
+The validation has 930,497 examples and the test
+set 543,424.
+The vocabulary size is 297,141 and
+there are 312,116 unique tags.
+We will release a
+script that recreates this dataset so that our numbers
+could be reproduced.
+We report precision at 1.
+We consider a frequency-based baseline which
+predicts the most frequent tag.
+We also com-
+pare with Tagspace (Weston et al., 2014), which is
+a tag prediction model similar to ours, but based on
+the Wsabie model of Weston et al.
+(2011).
+While
+the Tagspace model is described using convolutions,
+we consider the linear version, which achieves com-
+parable performance but is much faster.
+Results and training time.
+Table 5 presents a
+comparison of fastText and the baselines.
+We
+run fastText for 5 epochs and compare it
+to Tagspace for two sizes of the hidden layer, i.e., 50
+Model
+prec@1
+Running time
+Train
+Test
+Freq.
+baseline
+2.2
+-
+-
+Tagspace, h = 50
+30.1
+3h8
+6h
+Tagspace, h = 200
+35.6
+5h32
+15h
+fastText, h = 50
+31.2
+6m40
+48s
+fastText, h = 50, bigram
+36.7
+7m47
+50s
+fastText, h = 200
+41.1
+10m34
+1m29
+fastText, h = 200, bigram
+46.1
+13m38
+1m37
+Table 5:
+Prec@1 on the test set for tag prediction on
+YFCC100M.
+We also report the training time and test time.
+Test time is reported for a single thread, while training uses 20
+threads for both models.
+and 200.
+Both models achieve a similar perfor-
+mance with a small hidden layer, but adding bi-
+grams gives us a signiﬁcant boost in accuracy.
+At
+test time, Tagspace needs to compute the scores
+for all the classes which makes it relatively slow,
+while our fast inference gives a signiﬁcant speed-up
+when the number of classes is large (more than 300K
+here).
+Overall, we are more than an order of mag-
+nitude faster to obtain model with a better quality.
+The speedup of the test phase is even more signiﬁ-
+cant (a 600× speedup).
+Table 4 shows some quali-
+tative examples.
+4
+Discussion and conclusion
+In this work, we propose a simple baseline method
+for text classiﬁcation.
+Unlike unsupervisedly trained
+word vectors from word2vec, our word features can
+be averaged together to form good sentence repre-
+sentations.
+In several tasks, fastText obtains per-
+formance on par with recently proposed methods in-
+spired by deep learning, while being much faster.
+Although deep neural networks have in theory much
+higher representational power than shallow models,
+it is not clear if simple text classiﬁcation problems
+such as sentiment analysis are the right ones to eval-
+uate them.
+We will publish our code so that the
+research community can easily build on top of our
+work.
+Acknowledgement.
+We thank Gabriel Synnaeve,
+Herv´e G´egou, Jason Weston and L´eon Bottou for
+their help and comments.
+We also thank Alexis Con-
+neau, Duyu Tang and Zichao Zhang for providing us
+with information about their methods.
+References
+[Agarwal et al.2014] Alekh Agarwal, Olivier Chapelle,
+Miroslav Dud´ık, and John Langford.
+2014.
+A reliable
+effective terascale linear learning system.
+JMLR.
+[Collobert and Weston2008] Ronan Collobert and Jason
+Weston.
+2008.
+A uniﬁed architecture for natural lan-
+guage processing: Deep neural networks with multi-
+task learning.
+In ICML.
+[Conneau et al.2016] Alexis Conneau, Holger Schwenk,
+Lo¨ıc Barrault, and Yann Lecun.
+2016.
+Very deep con-
+volutional networks for natural language processing.
+arXiv preprint arXiv:1606.01781.
+[Deerwester et al.1990] Scott Deerwester, Susan T Du-
+mais, George W Furnas, Thomas K Landauer, and
+Richard Harshman.
+1990.
+Indexing by latent semantic
+analysis.
+Journal of the American society for informa-
+tion science.
+[Fan et al.2008] Rong-En Fan, Kai-Wei Chang, Cho-Jui
+Hsieh, Xiang-Rui Wang, and Chih-Jen Lin.
+2008.
+Li-
+blinear: A library for large linear classiﬁcation.
+JMLR.
+[Goodman2001] Joshua Goodman.
+2001.
+Classes for fast
+maximum entropy training.
+In ICASSP.
+[Joachims1998] Thorsten Joachims.
+1998.
+Text catego-
+rization with support vector machines: Learning with
+many relevant features.
+Springer.
+[Kim2014] Yoon Kim.
+2014.
+Convolutional neural net-
+works for sentence classiﬁcation.
+In EMNLP.
+[Levy et al.2015] Omer Levy, Yoav Goldberg, and Ido
+Dagan.
+2015.
+Improving distributional similarity with
+lessons learned from word embeddings.
+TACL.
+[McCallum and Nigam1998] Andrew McCallum and Ka-
+mal Nigam.
+1998.
+A comparison of event models for
+naive bayes text classiﬁcation.
+In AAAI workshop on
+learning for text categorization.
+[Mikolov et al.2011] Tom´aˇs Mikolov,
+Anoop Deoras,
+Daniel Povey, Luk´aˇs Burget, and Jan ˇCernock`y.
+2011.
+Strategies for training large scale neural network lan-
+guage models.
+In Workshop on Automatic Speech
+Recognition and Understanding.
+IEEE.
+[Mikolov et al.2013] Tomas Mikolov, Kai Chen, Greg
+Corrado, and Jeffrey Dean.
+2013.
+Efﬁcient estimation
+of word representations in vector space.
+arXiv preprint
+arXiv:1301.3781.
+[Pang and Lee2008] Bo Pang and Lillian Lee.
+2008.
+Opinion mining and sentiment analysis.
+Foundations
+and trends in information retrieval.
+[Schutze1992] Hinrich Schutze.
+1992.
+Dimensions of
+meaning.
+In Supercomputing.
+[Tang et al.2015] Duyu Tang, Bing Qin, and Ting Liu.
+2015.
+Document modeling with gated recurrent neural
+network for sentiment classiﬁcation.
+In EMNLP.
+[Thomee et al.2016] Bart Thomee, David A Shamma,
+Gerald Friedland, Benjamin Elizalde, Karl Ni, Dou-
+glas Poland, Damian Borth, and Li-Jia Li.
+2016.
+Yfcc100m: The new data in multimedia research.
+vol-
+ume 59, pages 64–73.
+ACM.
+[Wang and Manning2012] Sida Wang and Christopher D
+Manning.
+2012.
+Baselines and bigrams: Simple, good
+sentiment and topic classiﬁcation.
+In ACL.
+[Weinberger et al.2009] Kilian Weinberger, Anirban Das-
+gupta, John Langford, Alex Smola, and Josh Atten-
+berg.
+2009.
+Feature hashing for large scale multitask
+learning.
+In ICML.
+[Weston et al.2011] Jason Weston, Samy Bengio, and
+Nicolas Usunier.
+2011.
+Wsabie: Scaling up to large
+vocabulary image annotation.
+In IJCAI.
+[Weston et al.2014] Jason Weston, Sumit Chopra, and
+Keith Adams.
+2014.
+#tagspace: Semantic embed-
+dings from hashtags.
+In EMNLP.
+[Xiao and Cho2016] Yijun Xiao and Kyunghyun Cho.
+2016.
+Efﬁcient character-level document classiﬁcation
+by combining convolution and recurrent layers.
+arXiv
+preprint arXiv:1602.00367.
+[Zhang and LeCun2015] Xiang Zhang and Yann LeCun.
+2015.
+Text understanding from scratch.
+arXiv preprint
+arXiv:1502.01710.
+[Zhang et al.2015] Xiang Zhang, Junbo Zhao, and Yann
+LeCun.
+2015.
+Character-level convolutional networks
+for text classiﬁcation.
+In NIPS.
+Results are shown in Table 1.
+Several trends are clear:
+Model
+SQuAD 1.1
+MNLI
+ELI5
+XSum
+ConvAI2
+CNN/DM
+F1
+Acc
+PPL
+PPL
+PPL
+PPL
+BERT Base (Devlin et al., 2019)
+88.5
+84.3
+-
+-
+-
+-
+Masked Language Model
+90.0
+83.5
+24.77
+7.87
+12.59
+7.06
+Masked Seq2seq
+87.0
+82.1
+23.40
+6.80
+11.43
+6.19
+Language Model
+76.7
+80.1
+21.40
+7.00
+11.51
+6.56
+Permuted Language Model
+89.1
+83.7
+24.03
+7.69
+12.23
+6.96
+Multitask Masked Language Model
+89.2
+82.4
+23.73
+7.50
+12.39
+6.74
+BART Base
+w/ Token Masking
+90.4
+84.1
+25.05
+7.08
+11.73
+6.10
+w/ Token Deletion
+90.4
+84.1
+24.61
+6.90
+11.46
+5.87
+w/ Text Inﬁlling
+90.8
+84.0
+24.26
+6.61
+11.05
+5.83
+w/ Document Rotation
+77.2
+75.3
+53.69
+17.14
+19.87
+10.59
+w/ Sentence Shufﬂing
+85.4
+81.5
+41.87
+10.93
+16.67
+7.89
+w/ Text Inﬁlling + Sentence Shufﬂing
+90.8
+83.8
+24.17
+6.62
+11.12
+5.41
+Table 1: Comparison of pre-training objectives.
+All models are of comparable size and are trained for 1M steps
+on a combination of books and Wikipedia data.
+Entries in the bottom two blocks are trained on identical data
+using the same code-base, and ﬁne-tuned with the same procedures.
+Entries in the second block are inspired by
+pre-training objectives proposed in previous work, but have been simpliﬁed to focus on evaluation objectives (see
+§4.1).
+Performance varies considerably across tasks, but the BART models with text inﬁlling demonstrate the most
+consistently strong performance.
+Performance of pre-training methods varies signiﬁ-
+cantly across tasks
+The effectiveness of pre-training
+methods is highly dependent on the task.
+For exam-
+ple, a simple language model achieves the best ELI5
+performance, but the worst SQUAD results.
+Token masking is crucial
+Pre-training objectives
+based on rotating documents or permuting sentences
+perform poorly in isolation.
+The successful methods
+either use token deletion or masking, or self-attention
+masks.
+Deletion appears to outperform masking on
+generation tasks.
+Left-to-right
+pre-training
+improves
+generation
+The Masked Language Model and the Permuted
+Language Model perform less well than others on
+generation, and are the only models we consider that
+do not include left-to-right auto-regressive language
+modelling during pre-training.
+Bidirectional encoders are crucial for SQuAD
+As
+noted in previous work (Devlin et al., 2019), just
+left-to-right decoder performs poorly on SQuAD, be-
+cause future context is crucial in classiﬁcation deci-
+sions.
+However, BART achieves similar performance
+with only half the number of bidirectional layers.
+The pre-training objective is not the only important
+factor
+Our Permuted Language Model performs less
+well than XLNet (Yang et al., 2019).
+Some of this dif-
+ference is likely due to not including other architectural
+improvements, such as relative-position embeddings or
+segment-level recurrence.
+Pure language models perform best on ELI5
+The
+ELI5 dataset is an outlier, with much higher perplex-
+ities than other tasks, and is the only generation task
+where other models outperform BART.
+A pure lan-
+guage model performs best, suggesting that BART is
+less effective when the output is only loosely con-
+strained by the input.
+BART achieves the most consistently strong perfor-
+mance.
+With the exception of ELI5, BART models
+using text-inﬁlling perform well on all tasks.
+5
+Large-scale Pre-training Experiments
+Recent work has shown that downstream performance
+can dramatically improve when pre-training is scaled
+to large batch sizes (Yang et al., 2019; Liu et al., 2019)
+and corpora.
+To test how well BART performs in this
+regime, and to create a useful model for downstream
+tasks, we trained BART using the same scale as the
+RoBERTa model.
+5.1
+Experimental Setup
+We pre-train a large model with 12 layers in each of the
+encoder and decoder, and a hidden size of 1024.
+Fol-
+lowing RoBERTa (Liu et al., 2019), we use a batch size
+of 8000, and train the model for 500000 steps.
+Docu-
+ments are tokenized with the same byte-pair encoding
+as GPT-2 (Radford et al., 2019).
+Based on the results in
+Section §4, we use a combination of text inﬁlling and
+sentence permutation.
+We mask 30% of tokens in each
+document, and permute all sentences.
+Although sen-
+tence permutation only shows signiﬁcant additive gains
+SQuAD 1.1
+SQuAD 2.0
+MNLI
+SST
+QQP
+QNLI
+STS-B
+RTE
+MRPC
+CoLA
+EM/F1
+EM/F1
+m/mm
+Acc
+Acc
+Acc
+Acc
+Acc
+Acc
+Mcc
+BERT
+84.1/90.9
+79.0/81.8
+86.6/-
+93.2
+91.3
+92.3
+90.0
+70.4
+88.0
+60.6
+UniLM
+-/-
+80.5/83.4
+87.0/85.9
+94.5
+-
+92.7
+-
+70.9
+-
+61.1
+XLNet
+89.0/94.5
+86.1/88.8
+89.8/-
+95.6
+91.8
+93.9
+91.8
+83.8
+89.2
+63.6
+RoBERTa
+88.9/94.6
+86.5/89.4
+90.2/90.2
+96.4
+92.2
+94.7
+92.4
+86.6
+90.9
+68.0
+BART
+88.8/94.6
+86.1/89.2
+89.9/90.1
+96.6
+92.5
+94.9
+91.2
+87.0
+90.4
+62.8
+Table 2: Results for large models on SQuAD and GLUE tasks.
+BART performs comparably to RoBERTa and
+XLNet, suggesting that BART’s uni-directional decoder layers do not reduce performance on discriminative tasks.
+CNN/DailyMail
+XSum
+R1
+R2
+RL
+R1
+R2
+RL
+Lead-3
+40.42
+17.62
+36.67
+16.30
+1.60
+11.95
+PTGEN (See et al., 2017)
+36.44
+15.66
+33.42
+29.70
+9.21
+23.24
+PTGEN+COV (See et al., 2017)
+39.53
+17.28
+36.38
+28.10
+8.02
+21.72
+UniLM
+43.33
+20.21
+40.51
+-
+-
+-
+BERTSUMABS (Liu & Lapata, 2019)
+41.72
+19.39
+38.76
+38.76
+16.33
+31.15
+BERTSUMEXTABS (Liu & Lapata, 2019)
+42.13
+19.60
+39.18
+38.81
+16.50
+31.27
+BART
+44.16
+21.28
+40.90
+45.14
+22.27
+37.25
+Table 3: Results on two standard summarization datasets.
+BART outperforms previous work on summarization on
+two tasks and all metrics, with gains of roughly 6 points on the more abstractive dataset.
+on the CNN/DM summarization dataset, we hypothe-
+sised that larger pre-trained models may be better able
+to learn from this task.
+To help the model better ﬁt the
+data, we disabled dropout for the ﬁnal 10% of training
+steps.
+We use the same pre-training data as Liu et al.
+(2019), consisting of 160Gb of news, books, stories,
+and web text.
+5.2
+Discriminative Tasks
+Table 2 compares the performance of BART with sev-
+eral recent approaches on the well-studied SQuAD and
+GLUE tasks (Warstadt et al., 2018; Socher et al., 2013;
+Dolan & Brockett, 2005; Agirre et al., 2007; Williams
+et al., 2018; Dagan et al., 2006; Levesque et al., 2011).
+The most directly comparable baseline is RoBERTa,
+which was pre-trained with the same resources, but
+a different objective.
+Overall, BART performs simi-
+larly, with only small differences between the models
+on most tasks.
+suggesting that BART’s improvements
+on generation tasks do not come at the expense of clas-
+siﬁcation performance.
+5.3
+Generation Tasks
+We also experiment with several text generation tasks.
+BART is ﬁne-tuned as a standard sequence-to-sequence
+model from the input to the output text.
+During ﬁne-
+tuning we use a label smoothed cross entropy loss
+(Pereyra et al., 2017), with the smoothing parameter
+set to 0.1.
+During generation, we set beam size as 5,
+remove duplicated trigrams in beam search, and tuned
+the model with min-len, max-len, length penalty on the
+validation set (Fan et al., 2017).
+ConvAI2
+Valid F1
+Valid PPL
+Seq2Seq + Attention
+16.02
+35.07
+Best System
+19.09
+17.51
+BART
+20.72
+11.85
+Table 4: BART outperforms previous work on conver-
+sational response generation.
+Perplexities are renor-
+malized based on ofﬁcial tokenizer for ConvAI2.
+Summarization
+To provide a comparison with the
+state-of-the-art in summarization, we present results
+on two summarization datasets, CNN/DailyMail and
+XSum, which have distinct properties.
+Summaries in the CNN/DailyMail tend to resemble
+source sentences.
+Extractive models do well here, and
+even the baseline of the ﬁrst-three source sentences is
+highly competitive.
+Nevertheless, BART outperforms
+all existing work.
+In contrast, XSum is highly abstractive, and extrac-
+tive models perform poorly.
+BART outperforms the
+best previous work, which leverages BERT, by roughly
+6.0 points on all ROUGE metrics—representing a sig-
+niﬁcant advance in performance on this problem.
+Qual-
+itatively, sample quality is high (see §6).
+Dialogue
+We evaluate dialogue response generation
+on CONVAI2 (Dinan et al., 2019), in which agents
+must generate responses conditioned on both the pre-
+vious context and a textually-speciﬁed persona.
+BART
+outperforms previous work on two automated metrics.
+ELI5
+R1
+R2
+RL
+Best Extractive
+23.5
+3.1
+17.5
+Language Model
+27.8
+4.7
+23.1
+Seq2Seq
+28.3
+5.1
+22.8
+Seq2Seq Multitask
+28.9
+5.4
+23.1
+BART
+30.6
+6.2
+24.3
+Table 5:
+BART achieves state-of-the-art results on
+the challenging ELI5 abstractive question answering
+dataset.
+Comparison models are from Fan et al.
+(2019).
+RO-EN
+Baseline
+36.80
+Fixed BART
+36.29
+Tuned BART
+37.96
+Table 6: The performance (BLEU) of baseline and
+BART on WMT’16 RO-EN augmented with back-
+translation data.
+BART improves over a strong back-
+translation (BT) baseline by using monolingual English
+pre-training.
+Abstractive QA
+We use the recently proposed ELI5
+dataset to test the model’s ability to generate long free-
+form answers.
+We ﬁnd BART outperforms the best pre-
+vious work by 1.2 ROUGE-L, but the dataset remains
+a challenging, because answers are only weakly speci-
+ﬁed by the question.
+5.4
+Translation
+We also evaluated performance on WMT16 Romanian-
+English,
+augmented
+with
+back-translation
+data
+from Sennrich et al.
+(2016).
+We use a 6-layer
+transformer source encoder to map Romanian into
+a representation that BART is able to de-noise into
+English, following the approach introduced in §3.4.
+Experiment results are presented in Table 6.
+We
+compare our results against a baseline Transformer
+architecture (Vaswani et al., 2017) with Transformer-
+large settings (the baseline row).
+We show the
+performance of both steps of our model in the ﬁxed
+BART and tuned BART rows.
+For each row we
+experiment on the original WMT16 Romanian-English
+augmented with back-translation data.
+We use a
+beam width of 5 and a length penalty of α = 1.
+Preliminary results suggested that our approach was
+less effective without back-translation data, and prone
+to overﬁtting—future work should explore additional
+regularization techniques.
+6
+Qualitative Analysis
+BART shows large improvements on summarization
+metrics, of up to 6 points over the prior state-of-the-art.
+To understand BART’s performance beyond automated
+metrics, we analyse its generations qualitatively.
+Table 7 shows example summaries generated by
+BART.
+Examples are taken from WikiNews articles
+published after the creation of the pre-training corpus,
+to eliminate the possibility of the events described be-
+ing present in the model’s training data.
+Following
+Narayan et al.
+(2018), we remove the ﬁrst sentence of
+the article prior to summarizing it, so there is no easy
+extractive summary of the document.
+Unsurprisingly, model output is ﬂuent and grammat-
+ical English.
+However, model output is also highly ab-
+stractive, with few phrases copied from the input.
+The
+output is also generally factually accurate, and inte-
+grates supporting evidence from across the input doc-
+ument with background knowledge (for example, cor-
+rectly completing names, or inferring that PG&E oper-
+ates in California).
+In the ﬁrst example, inferring that
+ﬁsh are protecting reefs from global warming requires
+non-trivial inference from the text.
+However, the claim
+that the work was published in Science is not supported
+by the source.
+These samples demonstrate that the BART pretrain-
+ing has learned a strong combination of natural lan-
+guage understanding and generation.
+7
+Related Work
+Early methods for pretraining were based on language
+models.
+GPT (Radford et al., 2018) only models left-
+ward context, which is problematic for some tasks.
+ELMo (Peters et al., 2018) concatenates left-only and
+right-only representations, but does not pre-train inter-
+actions between these features.
+Radford et al.
+(2019)
+demonstrated that very large language models can act
+as unsupervised multitask models.
+BERT (Devlin et al., 2019) introduced masked lan-
+guage modelling, which allows pre-training to learn in-
+teractions between left and right context words.
+Re-
+cent work has shown that very strong performance can
+be achieved by training for longer (Liu et al., 2019),
+by tying parameters across layers (Lan et al., 2019),
+and by masking spans instead of words (Joshi et al.,
+2019).
+Predictions are not made auto-regressively, re-
+ducing the effectiveness of BERT for generation tasks.
+UniLM (Dong et al., 2019) ﬁne-tunes BERT with an
+ensemble of masks, some of which allow only leftward
+context.
+Like BART, this allows UniLM to be used for
+both generative and discriminative tasks.
+A difference
+is that UniLM predictions are conditionally indepen-
+dent, whereas BART’s are autoregressive.
+BART re-
+duces the mismatch between pre-training and genera-
+tion tasks, because the decoder is always trained on un-
+corrupted context.
+MASS (Song et al., 2019) is perhaps the most similar
+model to BART.
+An input sequence where a contiguous
+span of tokens is masked is mapped to a sequence con-
+sisting of the missing tokens.
+MASS is less effective
+for discriminative tasks, because disjoint sets of tokens
+are fed into the encoder and decoder.
+XL-Net (Yang et al., 2019) extends BERT by pre-
+Source Document (abbreviated)
+BART Summary
+The researchers examined three types of coral in reefs off the
+coast of Fiji ...
+The researchers found when ﬁsh were plentiful,
+they would eat algae and seaweed off the corals, which appeared
+to leave them more resistant to the bacterium Vibrio coralliilyti-
+cus, a bacterium associated with bleaching.
+The researchers sug-
+gested the algae, like warming temperatures, might render the
+corals’ chemical defenses less effective, and the ﬁsh were pro-
+tecting the coral by removing the algae.
+Fisheries off the coast of Fiji are protect-
+ing coral reefs from the effects of global
+warming, according to a study in the jour-
+nal Science.
+Sacoolas, who has immunity as a diplomat’s wife, was involved
+in a trafﬁc collision ...
+Prime Minister Johnson was questioned
+about the case while speaking to the press at a hospital in Wat-
+ford.
+He said, “I hope that Anne Sacoolas will come back ...
+if we can’t resolve it then of course I will be raising it myself
+personally with the White House.”
+Boris Johnson has said he will raise the is-
+sue of US diplomat Anne Sacoolas’ diplo-
+matic immunity with the White House.
+According to Syrian state media, government forces began de-
+ploying into previously SDF controlled territory yesterday.
+...
+On October 6, US President Donald Trump and Turkish Presi-
+dent Recep Tayyip Erdoan spoke on the phone.
+Then both na-
+tions issued statements speaking of an imminent incursion into
+northeast Syria ...
+.
+On Wednesday, Turkey began a military
+offensive with airstrikes followed by a ground invasion.
+Syrian government forces have entered
+territory held by the US-backed Syrian
+Democratic Forces (SDF) in response to
+Turkey’s incursion into the region.
+This is the ﬁrst time anyone has been recorded to run a full
+marathon of 42.195 kilometers (approximately 26 miles) under
+this pursued landmark time.
+It was not, however, an ofﬁcially
+sanctioned world record, as it was not an ”open race” of the
+IAAF.
+His time was 1 hour 59 minutes 40.2 seconds.
+Kipchoge
+ran in Vienna, Austria.
+It was an event speciﬁcally designed to
+help Kipchoge break the two hour barrier.
+Kenyan runner Eliud Kipchoge has run a
+marathon in less than two hours.
+PG&E stated it scheduled the blackouts in response to forecasts
+for high winds amid dry conditions.
+The aim is to reduce the risk
+of wildﬁres.
+Nearly 800 thousand customers were scheduled to
+be affected by the shutoffs which were expected to last through
+at least midday tomorrow.
+Power has been turned off to millions of
+customers in California as part of a power
+shutoff plan.
+Table 7: Example summaries from the XSum-tuned BART model on WikiNews articles.
+For clarity, only relevant
+excerpts of the source are shown.
+Summaries combine information from across the article and prior knowledge.
+dicting masked tokens auto-regressively in a permuted
+order.
+This objective allows predictions to condition on
+both left and right context.
+In contrast, the BART de-
+coder works left-to-right during pre-training, matching
+the setting during generation.
+Several papers have explored using pre-trained rep-
+resentations to improve machine translation.
+The
+largest improvements have come from pre-training on
+both source and target languages (Song et al., 2019;
+Lample & Conneau, 2019), but this requires pre-
+training on all languages of interest.
+Other work has
+shown that encoders can be improved using pre-trained
+representations (Edunov et al., 2019), but gains in de-
+coders are more limited.
+We show how BART can be
+used to improve machine translation decoders.
+in
+Table1
+are
+obtained
+from
+https://gluebenchmark.com/
+leaderboard
+and
+https://blog.
+openai.com/language-unsupervised.
+The GLUE benchmark includes the following
+datasets, the descriptions of which were originally
+summarized in Wang et al.
+(2018a):
+MNLI
+Multi-Genre Natural Language Inference
+is a large-scale, crowdsourced entailment classiﬁ-
+cation task (Williams et al., 2018).
+Given a pair of
+sentences, the goal is to predict whether the sec-
+ond sentence is an entailment, contradiction, or
+neutral with respect to the ﬁrst one.
+QQP
+Quora Question Pairs is a binary classiﬁ-
+cation task where the goal is to determine if two
+questions asked on Quora are semantically equiv-
+alent (Chen et al., 2018).
+QNLI
+Question Natural Language Inference is
+a version of the Stanford Question Answering
+Dataset (Rajpurkar et al., 2016) which has been
+converted to a binary classiﬁcation task (Wang
+et al., 2018a).
+The positive examples are (ques-
+tion, sentence) pairs which do contain the correct
+answer, and the negative examples are (question,
+sentence) from the same paragraph which do not
+contain the answer.
+BERT
+E[CLS]
+E1
+ E[SEP]
+...
+EN
+E1’
+...
+EM’
+C
+T1
+T[SEP]
+...
+TN
+T1’
+...
+TM’
+[CLS]
+Tok 
+1
+ [SEP]
+...
+Tok 
+N
+Tok 
+1
+...
+Tok
+M
+Question
+Paragraph
+BERT
+E[CLS]
+E1
+ E2
+ EN
+C
+T1
+ T2
+ TN
+Single Sentence 
+...
+...
+BERT
+Tok 1
+ Tok 2
+ Tok N
+...
+[CLS]
+E[CLS]
+E1
+ E2
+ EN
+C
+T1
+ T2
+ TN
+Single Sentence 
+B-PER
+O
+O
+...
+...
+E[CLS]
+E1
+ E[SEP]
+Class 
+Label
+...
+EN
+E1’
+...
+EM’
+C
+T1
+T[SEP]
+...
+TN
+T1’
+...
+TM’
+Start/End Span
+Class 
+Label
+BERT
+Tok 1
+ Tok 2
+ Tok N
+...
+[CLS]
+Tok 1
+[CLS]
+[CLS]
+Tok 
+1
+ [SEP]
+...
+Tok 
+N
+Tok 
+1
+...
+Tok
+M
+Sentence 1
+...
+Sentence 2
+Figure 4: Illustrations of Fine-tuning BERT on Different Tasks.
+SST-2
+The Stanford Sentiment Treebank is a
+binary single-sentence classiﬁcation task consist-
+ing of sentences extracted from movie reviews
+with human annotations of their sentiment (Socher
+et al., 2013).
+CoLA
+The Corpus of Linguistic Acceptability is
+a binary single-sentence classiﬁcation task, where
+the goal is to predict whether an English sentence
+is linguistically “acceptable” or not (Warstadt
+et al., 2018).
+STS-B
+The Semantic Textual Similarity Bench-
+mark is a collection of sentence pairs drawn from
+news headlines and other sources (Cer et al.,
+2017).
+They were annotated with a score from 1
+to 5 denoting how similar the two sentences are in
+terms of semantic meaning.
+MRPC
+Microsoft Research Paraphrase Corpus
+consists of sentence pairs automatically extracted
+from online news sources, with human annotations
+for whether the sentences in the pair are semanti-
+cally equivalent (Dolan and Brockett, 2005).
+RTE
+Recognizing Textual Entailment is a bi-
+nary entailment task similar to MNLI, but with
+much less training data (Bentivogli et al., 2009).14
+WNLI
+Winograd NLI is a small natural lan-
+guage inference dataset (Levesque et al., 2011).
+The GLUE webpage notes that there are issues
+with the construction of this dataset, 15 and every
+trained system that’s been submitted to GLUE has
+performed worse than the 65.1 baseline accuracy
+of predicting the majority class.
+We therefore ex-
+clude this set to be fair to OpenAI GPT.
+For our
+GLUE submission, we always predicted the ma-
+14Note that we only report single-task ﬁne-tuning results
+in this paper.
+A multitask ﬁne-tuning approach could poten-
+tially push the performance even further.
+For example, we
+did observe substantial improvements on RTE from multi-
+task training with MNLI.
+15https://gluebenchmark.com/faq
+jority class.
+C
+Additional Ablation Studies
+C.1
+Effect of Number of Training Steps
+Figure 5 presents MNLI Dev accuracy after ﬁne-
+tuning from a checkpoint that has been pre-trained
+for k steps.
+This allows us to answer the following
+questions:
+1.
+Question:
+Does BERT really need such
+a large amount of pre-training (128,000
+words/batch * 1,000,000 steps) to achieve
+high ﬁne-tuning accuracy?
+Answer: Yes, BERTBASE achieves almost
+1.0% additional accuracy on MNLI when
+trained on 1M steps compared to 500k steps.
+2.
+Question: Does MLM pre-training converge
+slower than LTR pre-training, since only 15%
+of words are predicted in each batch rather
+than every word?
+Answer: The MLM model does converge
+slightly slower than the LTR model.
+How-
+ever, in terms of absolute accuracy the MLM
+model begins to outperform the LTR model
+almost immediately.
+C.2
+Ablation for Different Masking
+Procedures
+In Section 3.1, we mention that BERT uses a
+mixed strategy for masking the target tokens when
+pre-training with the masked language model
+(MLM) objective.
+The following is an ablation
+study to evaluate the effect of different masking
+strategies.
+200
+400
+600
+800
+1,000
+76
+78
+80
+82
+84
+Pre-training Steps (Thousands)
+MNLI Dev Accuracy
+BERTBASE (Masked LM)
+BERTBASE (Left-to-Right)
+Figure 5: Ablation over number of training steps.
+This
+shows the MNLI accuracy after ﬁne-tuning, starting
+from model parameters that have been pre-trained for
+k steps.
+The x-axis is the value of k.
+Note that the purpose of the masking strategies
+is to reduce the mismatch between pre-training
+and ﬁne-tuning, as the [MASK] symbol never ap-
+pears during the ﬁne-tuning stage.
+We report the
+Dev results for both MNLI and NER.
+For NER,
+we report both ﬁne-tuning and feature-based ap-
+proaches, as we expect the mismatch will be am-
+pliﬁed for the feature-based approach as the model
+will not have the chance to adjust the representa-
+tions.
+Masking Rates
+Dev Set Results
+MASK SAME
+RND
+MNLI
+NER
+Fine-tune Fine-tune Feature-based
+80%
+10%
+10%
+84.2
+95.4
+94.9
+100%
+0%
+0%
+84.3
+94.9
+94.0
+80%
+0%
+20%
+84.1
+95.2
+94.6
+80%
+20%
+0%
+84.4
+95.2
+94.7
+0%
+20%
+80%
+83.7
+94.8
+94.6
+0%
+0% 100%
+83.6
+94.9
+94.6
+Table 8: Ablation over different masking strategies.
+The results are presented in Table 8.
+In the table,
+MASK means that we replace the target token with
+the [MASK] symbol for MLM; SAME means that
+we keep the target token as is; RND means that
+we replace the target token with another random
+token.
+The numbers in the left part of the table repre-
+sent the probabilities of the speciﬁc strategies used
+during MLM pre-training (BERT uses 80%, 10%,
+10%).
+The right part of the paper represents the
+Dev set results.
+For the feature-based approach,
+we concatenate the last 4 layers of BERT as the
+features, which was shown to be the best approach
+in Section 5.3.
+From the table it can be seen that ﬁne-tuning is
+surprisingly robust to different masking strategies.
+However, as expected, using only the MASK strat-
+egy was problematic when applying the feature-
+based approach to NER.
+Interestingly, using only
+the RND strategy performs much worse than our
+strategy as well.
+Table 1 shows our main results on the CNN-
+DM corpus, with abstractive models shown in
+the top, and bottom-up attention methods at the
+bottom.
+We ﬁrst observe that using a cover-
+age inference penalty scores the same as a full
+coverage mechanism, without requiring any addi-
+tional model parameters or model ﬁne-tuning.
+The
+results with the CopyTransformer and coverage
+penalty indicate a slight improvement across all
+three scores, but we observe no signiﬁcant differ-
+ence between Pointer-Generator and CopyTrans-
+former with bottom-up attention.
+We found that none of our end-to-end models
+lead to improvements, indicating that it is difﬁ-
+cult to apply the masking during training with-
+out hurting the training process.
+The Mask Only
+model with increased supervision on the copy
+mechanism performs very similar to the Multi-
+Task model.
+On the other hand, bottom-up atten-
+tion leads to a major improvement across all three
+scores.
+While we would expect better content se-
+lection to primarily improve ROUGE-1, the fact
+all three increase hints that the ﬂuency is not be-
+ing hurt speciﬁcally.
+Our cross-entropy trained ap-
+(Celikyilmaz et al., 2018).
+We compare to their DCA model
+on the NYT corpus.
+Method
+R-1
+R-2
+R-L
+ML*
+44.26
+27.43
+40.41
+ML+RL*
+47.03
+30.72
+43.10
+DCA†
+48.08
+31.19
+42.33
+Point.Gen.
++ Coverage Pen.
+45.13
+30.13
+39.67
+Bottom-Up Summarization
+47.38
+31.23
+41.81
+Table 2: Results on the NYT corpus, where we com-
+pare to RL trained models.
+* marks models and results
+by Paulus et al.
+(2017), and † results by Celikyilmaz
+et al.
+(2018).
+proach even outperforms all of the reinforcement-
+learning based approaches in ROUGE-1 and 2,
+while the highest reported ROUGE-L score by
+Chen and Bansal (2018) falls within the 95% con-
+ﬁdence interval of our results.
+Table 2 shows experiments with the same sys-
+tems on the NYT corpus.
+We see that the 2 point
+improvement compared to the baseline Pointer-
+Generator maximum-likelihood approach carries
+over to this dataset.
+Here, the model outperforms
+the RL based model by Paulus et al.
+(2017) in
+ROUGE-1 and 2, but not L, and is comparable
+to the results of (Celikyilmaz et al., 2018) except
+for ROUGE-L.
+The same can be observed when
+comparing ML and our Pointer-Generator.
+We
+suspect that a difference in summary lengths due
+to our inference parameter choices leads to this
+difference, but did not have access to their mod-
+els or summaries to investigate this claim.
+This
+shows that a bottom-up approach achieves com-
+petitive results even to models that are trained on
+summary-speciﬁc objectives.
+The main beneﬁt of bottom-up summarization
+seems to be from the reduction of mistakenly
+copied words.
+With the best Pointer-Generator
+models, the precision of copied words is 50.0%
+compared to the reference.
+This precision in-
+creases to 52.8%, which mostly drives the increase
+in R1.
+An independent-samples t-test shows that
+this improvement is statistically signiﬁcant with
+t=14.7 (p < 10−5).
+We also observe a decrease
+in average sentence length of summaries from 13
+to 12 words when adding content selection com-
+pared to the Pointer-Generator while holding all
+other inference parameters constant.
+Domain Transfer
+While end-to-end training
+has become common, there are beneﬁts to a two-
+step method.
+Since the content selector only needs
+1 5 10
+20
+30
+40
+50
+60
+70
+80
+90 100
+74
+75
+76
+77
+78
+AUC with increasing training data
+[thousands]
+Figure 3: The AUC of the content selector trained
+on CNN-DM with different training set sizes ranging
+from 1,000 to 100,000 data points.
+to solve a binary tagging problem with pretrained
+vectors, it performs well even with very limited
+training data.
+As shown in Figure 3, with only
+1,000 sentences, the model achieves an AUC of
+over 74.
+Beyond that size, the AUC of the model
+increases only slightly with increasing training
+data.
+To further evaluate the content selection, we
+consider an application to domain transfer.
+In
+this experiment, we apply the Pointer-Generator
+trained on CNN-DM to the NYT corpus.
+In ad-
+dition, we train three content selectors on 1, 10,
+and 100 thousand sentences of the NYT set, and
+use these in the bottom-up summarization.
+The
+results, shown in Table 3, demonstrates that even
+a model trained on the smallest subset leads to an
+improvement of almost 5 points over the model
+without bottom-up attention.
+This improvement
+increases with the larger subsets to up to 7 points.
+While this approach does not reach a compara-
+ble performance to models trained directly on the
+NYT dataset, it still represents a signiﬁcant in-
+crease over the not-augmented CNN-DM model
+and produces summaries that are quite readable.
+We show two example summaries in Appendix A.
+This technique could be used for low-resource do-
+mains and for problems with limited data avail-
+ability.
+8
+Analysis and Discussion
+Extractive Summary by Content Selection?
+Given that the content selector is effective in con-
+junction with the abstractive model, it is interest-
+ing to know whether it has learned an effective
+extractive summarization system on its own.
+Ta-
+ble 4 shows experiments comparing content selec-
+tion to extractive baselines.
+The LEAD-3 baseline
+is a commonly used baseline in news summariza-
+tion that extracts the ﬁrst three sentences from an
+AUC
+R-1
+R-2
+R-L
+CNNDM
+25.63
+11.40
+20.55
++1k
+80.7
+30.62
+16.10
+25.32
++10k
+83.6
+32.07
+17.60
+26.75
++100k
+86.6
+33.11
+18.57
+27.69
+Table 3:
+Results of the domain transfer experi-
+ment.
+AUC numbers are shown for content selectors.
+ROUGE scores represent an abstractive model trained
+on CNN-DM and evaluated on NYT, with additional
+copy constraints trained on 1/10/100k training exam-
+ples of the NYT corpus.
+Method
+R-1
+R-2
+R-L
+LEAD-3
+40.1
+17.5
+36.3
+NEUSUM (Zhou et al., 2018)
+41.6
+19.0
+38.0
+Top-3 sents (Cont.
+Select.)
+40.7
+18.0
+37.0
+Oracle Phrase-Selector
+67.2
+37.8
+58.2
+Content Selector
+42.0
+15.9
+37.3
+Table 4:
+Results of extractive approaches on the
+CNN-DM dataset.
+The ﬁrst section shows sentence-
+extractive scores.
+The second section ﬁrst shows an
+oracle score if the content selector selected all the cor-
+rect words according to our matching heuristic.
+Finally,
+we show results when the Content Selector extracts all
+phrases above a selection probability threshold.
+article.
+Top-3 shows the performance when we
+extract the top three sentences by average copy
+probability from the selector.
+Interestingly, with
+this method, only 7.1% of the top three sentences
+are not within the ﬁrst three, further reinforcing
+the strength of the LEAD-3 baseline.
+Our naive
+sentence-extractor performs slightly worse than
+the highest reported extractive score by Zhou et al.
+(2018) that is speciﬁcally trained to score combi-
+nations of sentences.
+The ﬁnal entry shows the
+performance when all the words above a threshold
+are extracted such that the resulting summaries are
+approximately the length of reference summaries.
+The oracle score represents the results if our model
+had a perfect accuracy, and shows that the con-
+tent selector, while yielding competitive results,
+has room for further improvements in future work.
+This result shows that the model is quite effec-
+tive at ﬁnding important words (ROUGE-1) but
+less effective at chaining them together (ROUGE-
+2).
+Similar to Paulus et al.
+(2017), we ﬁnd that the
+decrease in ROUGE-2 indicates a lack of ﬂuency
+and grammaticality of the generated summaries.
+A
+Data
+%Novel
+Verb
+Noun
+Adj
+Reference
+14.8
+30.9
+35.5
+12.3
+Vanilla S2S
+6.6
+14.5
+19.7
+5.1
+Pointer-Generator
+2.2
+25.7
+39.3
+13.9
+Bottom-Up Attention
+0.5
+53.3
+24.8
+6.5
+Table 5: %Novel shows the percentage of words in a
+summary that are not in the source document.
+The last
+three columns show the part-of-speech tag distribution
+of the novel words in generated summaries.
+typical example looks like this:
+a man food his ﬁrst hamburger wrong-
+fully for 36 years.
+michael hanline, 69,
+was convicted of murder for the shoot-
+ing of truck driver jt mcgarry in 1980 on
+judge charges.
+This particular ungrammatical example has a
+ROUGE-1 of 29.3.
+This further highlights the
+beneﬁt of the combined approach where bottom-
+up predictions are chained together ﬂuently by
+the abstractive system.
+However, we also note
+that the abstractive system requires access to the
+full source document.
+Distillation experiments in
+which we tried to use the output of the content-
+selection as training-input to abstractive models
+showed a drastic decrease in model performance.
+Analysis of Copying
+While Pointer-Generator
+models have the ability to abstract in summary, the
+use of a copy mechanism causes the summaries
+to be mostly extractive.
+Table 5 shows that with
+copying the percentage of generated words that are
+not in the source document decreases from 6.6% to
+2.2%, while reference summaries are much more
+abstractive with 14.8% novel words.
+Bottom-up
+attention leads to a further reduction to only a half
+percent.
+However, since generated summaries are
+typically not longer than 40-50 words, the dif-
+ference between an abstractive system with and
+without bottom-up attention is less than one novel
+word per summary.
+This shows that the beneﬁt
+of abstractive models has been less in their abil-
+ity to produce better paraphrasing but more in the
+ability to create ﬂuent summaries from a mostly
+extractive process.
+Table 5 also shows the part-of-speech-tags of
+the novel generated words, and we can observe an
+interesting effect.
+Application of bottom-up atten-
+tion leads to a sharp decrease in novel adjectives
+1
+2
+3-5
+6-10
+11+
+0
+10
+20
+30
+40
+50
+Reference
+Pointer-Generator
+Bottom-Up Attention
+Copy actions of different lengths
+[%]
+Figure 4: For all copied words, we show the distribu-
+tion over the length of copied phrases they are part of.
+The black lines indicate the reference summaries, and
+the bars the summaries with and without bottom-up at-
+tention.
+and nouns, whereas the fraction of novel words
+that are verbs sharply increases.
+When looking
+at the novel verbs that are being generated, we
+notice a very high percentage of tense or number
+changes, indicated by variation of the word “say”,
+for example “said” or “says”, while novel nouns
+are mostly morphological variants of words in the
+source.
+Figure 4 shows the length of the phrases that are
+being copied.
+While most copied phrases in the
+reference summaries are in groups of 1 to 5 words,
+the Pointer-Generator copies many very long se-
+quences and full sentences of over 11 words.
+Since
+the content selection mask interrupts most long
+copy sequences, the model has to either gener-
+ate the unselected words using only the genera-
+tion probability or use a different word instead.
+While we observed both cases quite frequently
+in generated summaries, the fraction of very long
+copied phrases decreases.
+However, either with
+or without bottom-up attention, the distribution of
+the length of copied phrases is still quite different
+from the reference.
+Inference Penalty Analysis
+We next analyze
+the effect of the inference-time loss functions.
+Ta-
+ble 6 presents the marginal improvements over
+the simple Pointer-Generator when adding one
+penalty at a time.
+We observe that all three penal-
+ties improve all three scores, even when added on
+top of the other two.
+This further indicates that
+the unmodiﬁed Pointer-Generator model has al-
+ready learned an appropriate representation of the
+abstractive summarization problem, but is limited
+by its ineffective content selection and inference
+There are four main dimensions we vary in experiments in generating Wikipedia lead sections:
+1.
+Extractive method: SumBasic, TextRank, tf-idf, identity, cheating extractor
+2.
+Input corpus: citations, search results, combined
+3.
+Abstractive model input length, L: We try values between 100 and 11000.
+4.
+Abstractive model architecture: seq2seq-att, T-ED, T-D, T-DMCA
+Figure 2: ROUGE-L F1 for various extractive methods.
+The abstractive model contribution is shown
+for the best combined tf-idf-T-DMCA model.
+Extractive-only is not enough: We investigate performance of extractive methods without the ab-
+stractive model by looking at the ROUGE-L F1 scores after running tf-idf, SumBasic, and TextRank
+in Figure 2, without any abstractive model.
+In the case of TextRank and SumBasic we matched the
+output length to the target length and observe the extractive methods perform roughly in-line with
+each other in terms of ROUGE-L F1.
+Our best abstractive model more than doubled this metric.
+Further, this model yields large improvements in perceived linguistic quality (elaborated below).
+Extractive method: From Table 3 we observe that smart extraction is critical for ﬁnal abstractive
+performance.
+There is a signiﬁcant gap between doing nothing, identity, and extractive summariza-
+tion, tf-idf.
+Further, there is a signiﬁcant gap between tf-idf and the cheating extractor, suggesting
+future work in improving the extraction step could result in signiﬁcant improvements.
+One possibil-
+ity is to train a supervised model to predict relevance (Eq.
+1), which we leave as future work.
+For
+subsequent experiments we ﬁx the extractive method to tf-idf.
+Input Corpus: From table 3 we also observe that, unsurprisingly, the combined dataset performs
+best, but the gaps between it and using only one of citations or search results are both signiﬁcant
+and their contributions are complementary.
+In subsequent experiments, we report only the combined
+7
+Published as a conference paper at ICLR 2018
+Table 4: Performance of best models of each model architecture using the combined corpus and
+tf-idf extractor.
+Model
+Test perplexity
+ROUGE-L
+seq2seq-attention, L = 500
+5.04952
+12.7
+Transformer-ED, L = 500
+2.46645
+34.2
+Transformer-D, L = 4000
+2.22216
+33.6
+Transformer-DMCA, no MoE-layer, L = 11000
+2.05159
+36.2
+Transformer-DMCA, MoE-128, L = 11000
+1.92871
+37.9
+Transformer-DMCA, MoE-256, L = 7500
+1.90325
+38.8
+Figure 3: Shows perplexity versus L for tf-idf extraction on combined corpus for different model
+architectures.
+For T-DMCA, E denotes the size of the mixture-of-experts layer.
+Abstractive model architecture and input length: As we see from Table 4, seq2seq-attention as a
+baseline does quite poorly on this task compared to the Transformer architectures.
+As seen in Figure
+3, we observe that the Transformer encoder-decoder, T-ED, architecture consistently improves in
+performance until a best of around L = 500 −1000 and is unable to learn at L = 2000.
+This
+motivated the Transformer-Decoder, which we found could learn and improve up to L = 4000,
+before running out of memory on our machines equipped with 16GB of GPU RAM (NVIDIA P100).
+By using the T-DMCA modiﬁcations, we were able to train up to L = 11000 and continued to see
+improvements in performance.
+We also found the MoE-layer helped performance by adding model
+capacity at high L, for example dropping log-perplexity from 2.05 to 1.93 at L = 11000 with 128
+experts.
+Our best model attempted uses 256 experts at L = 7500 (we were unable to use 256 experts
+with L = 11000 due to memory constraints) and achieves a perplexity of 1.90,
+Human Evaluation - Linguistic quality We conducted a DUC-style human evaluation of linguistic
+quality3 of samples from a baseline abstractive (seq2seq), the best extractive (tf-idf), and our best T-
+DMCA models.
+Five different dimensions are assessed: grammaticality, non-redundancy, referential
+clarity, focus, and structure/coherence.
+As seen in Table 5, the T-DMCA model does statistically
+signiﬁcantly better on all dimensions, except on non-redundancy where tf-idf does about as well.
+Overall, we observed high ﬂuency and coherence from our best abstractive model.
+Occasionally we
+observed some repetition of phrases which hurt the non-redundancy and structure, but it was much
+rarer compared with the other abstractive method, seq2seq.
+The biggest weakness of the extractive
+3http://duc.nist.gov/duc2007/quality-questions.txt
+8
+Published as a conference paper at ICLR 2018
+Table 5: Linguistic quality human evaluation scores (scale 1-5, higher is better).
+A score signif-
+icantly different (according to the Welch Two Sample t-test, with p = 0.001) than the T-DMCA
+model is denoted by *.
+Model
+Focus
+Grammar
+Non-
+redundancy
+Referential
+clarity
+Structure and
+Coherence
+T-DMCA (best)
+4.5
+4.6
+4.2
+4.5
+4.2
+tf-idf-only
+3.0*
+3.6*
+3.9
+3.2*
+2.7*
+seq2seq-attention
+3.0*
+3.4*
+2.1*
+3.4*
+2.3*
+Table 6: Side-by-side for two models pair with large automatic metric gaps
+Model A
+Model B
+ROUGE-L A
+ROUGE-L B
+# prefer B
+# prefer A
+T-ED, L = 100
+T-ED, L = 500
+30.9
+34.2
+4.25
+T-ED, L = 500
+T-DMCA-MoE-256, L = 7500
+34.2
+38.8
+1.5
+method compared with our best abstractive model was the lack of structure and coherence in the
+summaries.
+Human Evaluation - side-by-side preference We validated our chosen metrics correlate with hu-
+man preference by conducting two side-by-side human evaluation experiments, comparing models
+with large gaps in perplexity/ROUGE.
+We observe in Table 6 that human judgment correlates with
+our automatic metrics, but it becomes more difﬁcult to distinguish at the higher-end of model per-
+formance.
+Details of the human evaluation experimental designs can be found in Appendix A.3.
+To summarize the quantitative results, we believe the highest impact future work will be from im-
+proving the extractive stage and extending the decoder-only architectures to learn from larger L
+while maintaining sufﬁcient model capacity.
+Comparison with Sauper & Barzilay (2009): A direct comparison with Sauper & Barzilay (2009)
+is difﬁcult for three reasons: (a) they report results only for two small subsets of Wikipedia, Diseases
+and American Actors; (b) we report on lead generation instead of full-articles; (c) we were unable
+to obtain the exact articles they used as input and output (in particular they make no claim of Wiki-
+clone detection).
+However, we make a best-effort comparison by ﬁnding the subset of articles of our
+test set that correspond to Diseases and American Actors, the two categories reported on by Sauper
+& Barzilay and reporting our ROUGE-1 scores (Table 7).
+We observe that we perform better on
+American Actors than Diseases, probably because of the prevalence of the former (and biographies)
+in Wikipedia compared to the latter in our training set for our single, global model, whereas Sauper
+& Barzilay likely beneﬁt from the category-speciﬁc templates.
+On average our ROUGE-1 scores are
+higher but do worse on the less common and somewhat speciﬁc disease category.
+5.4
+QUALITATIVE DISCUSSION
+In Figure 4, we show the predictions from three different models (using tf-idf extraction, and the
+combined corpus) along with the Wikipedia ground truth.
+As the perplexity decreases we see im-
+provements in the model outputs, in terms of ﬂuency, factual accuracy, and narrative complexity.
+In
+particular, the T-DMCA model offers a respectable alternative to the Wikipedia version and is more
+succinct, while mentioning key facts, such as where the law ﬁrm was located, when and how it was
+formed, and the rise and fall of the ﬁrm.
+In manual inspection of model outputs, we noticed an unexpected side-effect: models learn to trans-
+late names from English into multiple languages, e.g.
+Rohit Viswanath into Hindi (see Figure 5).
+Although we did not do a systematic evaluation of the translations, we found they are often correct,
+and often they are not found in the Wikipedia article itself.
+We also veriﬁed that in general the
+9
+Published as a conference paper at ICLR 2018
+Table 7: Comparison of results with Sauper & Barzilay (2009).
+Note our results are reported for
+lead section, whereas Sauper & Barzilay report for articles.
+ROUGE-1 R
+ROUGE-1 P
+ROUGE-1 F1
+All Wikipedia
+T-DMCA (Ours)
+46
+53
+43
+Diseases
+T-DMCA (Ours), n = 161
+25
+48
+29
+Sauper & Barzilay
+36
+39
+37
+American Actors
+T-DMCA (Ours), n = 1322
+52
+72
+54
+Sauper & Barzilay
+46
+40
+41
+Figure 4: Shows predictions for the same example from different models.
+Example model input can
+be found in the Appendix A.4
+translation is not merely copied from the source, such as example cases where the target language is
+the incorrect one (e.g.
+translation of an English name into Ukrainian).
+5.5
+GENERATING FULL-WIKIPEDIA ARTICLES
+Given that we have shown it is possible to learn sequence transduction models on combined input-
+output sequence lengths of approximately 12000 using the T-D architecture, we show that it is
+possible to train a model to generate entire Wikipedia articles.
+As a preliminary result, we trained
+two T-DMCA models: One is trained to use L = 6000 reference tokens to predict at most 2192 ar-
+ticle tokens (longer examples are ignored) and another is conditioned only on the title and generates
+articles up to 4000 tokens long.
+We show samples from both models in Appendix A.1.
+Although the generated articles are not as
+good as the real Wikipedia or our lead section samples, the models can be seen to organize the
+10
+Published as a conference paper at ICLR 2018
+Figure 5: Translation examples from the Transformer-ED, L = 500.
+article into plausible sections and exhibit global coherence over multi-paragraph text.
+The model
+with access to reference documents inserts factual information in the generated article.
+Although we
+did not focus or tune on the full-article task we see this as an interesting future work for abstractive
+summarization.
+Table 1 shows BLEU scores on newstest2010-2016
+for each method.
+We trained three models with
+different random seeds, and reported the averaged
+scores.
+Table 1 also shows the total number of
+parameters and computational speeds4.
+The com-
+putational speed is based on the speed of Universal.
+(i) Comparison with Universal in terms of effi-
+ciency
+In the comparison between Universal and
+Vanilla, Universal achieved better scores although
+their parameter sizes are almost the same.
+This
+result is consistent with the report in (Dehghani
+et al., 2019).
+However, the training time of Uni-
+versal is more than twice as much as the one of
+Vanilla.
+In addition, Universal (deep) didn’t im-
+prove the performance from Universal, and thus
+stacking many layers have small effect on BLEU
+scores when the model shares parameters of one
+layer with all layers.
+In contrast, the proposed strategies (SEQUENCE,
+CYCLE, and CYCLE (REV)) were faster and
+achieved slightly better scores than Universal when
+we set M = 6 and N = 12.
+Thus, our proposed
+parameter sharing strategies are more efficient than
+Universal in terms of the parameter size and com-
+putational time.
+In comparison among Universal (small) and the
+proposed strategies, Universal (small) was faster5
+4We regard processed tokens per second during the training
+as the computational speed.
+5We used the same dimension sizes for Vanilla and Uni-
+versal (small) but their training speeds are different from each
+other.
+Since Universal (small) consists of small parameters,
+the computational time for updating is smaller than Vanilla.
+but the configuration drastically sacrificed BLEU
+scores.
+These results imply that the strategy in
+Universal Transformer, which shares parameters of
+one layer with all layers, damages computational
+time or the quality of output sequences.
+In com-
+parison with those Universal configurations, our
+proposed strategies improved both of the computa-
+tional speed and BLEU scores.
+Figure 3 illustrates the negative log-likelihood
+(NLL) values on newstest2013 for each training
+step.
+In this figure, we used M = 6 and N = 12
+for our proposed strategies.
+This figure shows that
+Universal achieved better NLL values in the be-
+ginning of the training but the proposed strate-
+gies outperformed others when the training step
+is larger than 15,000.
+When we have finished train-
+ing, the proposed strategies achieved better NLL
+values than Universal (and Vanilla).
+This result
+also indicates that the proposed strategies achieved
+better performance.
+We emphasize that the pro-
+posed strategies reached this better performance
+with small computational time in comparison with
+Universal because the proposed strategies are faster
+as in Table 1.
+(ii) Comparison with models without parameter
+sharing across layers
+The lowest part of Table
+1 indicates results when we prepared more param-
+eters.
+We trained these models to investigate the
+performance of models without parameter sharing
+across layers.
+In other words, the purpose of these
+settings are comparison with models using larger
+memory footprint.
+As shown in Table 1, the pro-
+posed strategies achieved better performance than
+0
+10000
+20000
+30000
+40000
+50000
+The number of updates
+2.0
+2.1
+2.2
+2.3
+2.4
+2.5
+Valid loss (NLL)
+Vanilla
+Universal
+Sequence
+Cycle
+Cycle (Rev)
+Figure 3: Negative log-likelihood (NLL) of each method
+on newstest2013.
+For our proposed parameter sharing
+strategies, we used M = 6 and N = 12.
+models consisting of a large number of parame-
+ters in the averaged BLEU scores of newstest2010-
+2016.
+This result implies that the proposed parame-
+ter sharing strategies are not only efficient but also
+effective in constructing better encoder-decoder
+models.
+3.2
+High Resource Setting
+3.2.1
+Datasets
+In the high resource setting, we constructed 44.2M
+translation sentence pairs as a training dataset with
+the procedures of (Kiyono et al., 2020) which
+achieved the best result in the WMT 2020 news
+translation task.
+In addition, we augmented the
+training data by using the back-translation tech-
+nique (Sennrich et al., 2016a) in the same manner
+as (Kiyono et al., 2020).
+We obtained 284.3M
+pairs as synthetic training data.
+For evaluation,
+we add newstest2018 and 2019 to the set used in
+Section 3.1 to because (Kiyono et al., 2020) used
+these two test sets.
+In the same as Section 3.1, we
+measured case-sensitive detokenized BLEU with
+SacreBLEU.
+3.2.2
+Table 2 shows BLEU scores of each method on
+each test set.
+Similar to the experiments in Section
+3.1, we reported the averaged scores of three mod-
+els trained with different random seeds.
+Table 2
+also shows the total number of parameters6.
+Table 2 shows that the proposed strategies
+achieved better BLEU scores than Vanilla and Uni-
+versal when we prepared almost the same number
+of parameters.
+This result indicates that the pro-
+posed strategies are also parameter efficient in the
+high resource setting.
+In addition, since we used
+M = 6 and N = 12 for proposed strategies, they
+are also more efficient than Universal in terms of
+computational time (see Table 1).
+When we used additional synthetic data for train-
+ing in the same manner as (Kiyono et al., 2020),
+CYCLE (REV) achieved comparable BLEU scores
+to the best system of (Kiyono et al., 2020) except
+for newstest20197 even though the parameter size
+of CYCLE (REV) was smaller than theirs.
+This re-
+sult indicates that CYCLE (REV) is also efficient in
+the construction of models for recent competitive
+tasks.
+In addition, this result implies that our pro-
+posed strategies can be used in the configuration
+where we train many parameters with a tremendous
+amount of data such as recent pre-trained language
+models, e.g., GPT series (Brown et al., 2020).
+We
+investigate the effect of the proposed strategies on
+language models in Appendix A.
+3.3
+Other Direction and Language Pair
+3.3.1
+Datasets
+We conduct experiments on the other direction and
+language pair.
+For the German-to-English training
+dataset, we used the identical data in Section 3.1.
+For English-to-French and French-to-English, we
+6The parameter sizes of Vanilla (big) in Table 1 and Vanilla
+in Table 2 are different from each other due to the difference
+of sharing embeddings.
+Following (Kiyono et al., 2020), we
+did not share embeddings in the high resource setting.
+7For newstest2019, synthetic data might harm the quality
+of a model because models trained with only genuine data
+outperformed those trained with both data.
+Method
+#Params
+2010
+2011
+2012
+2013
+2014
+2015
+2016
+2018
+2019
+Avg.
+Genuine training data
+Vanilla
+242M
+26.53
+24.09
+24.51
+28.51
+31.40
+33.52
+39.08
+47.11
+42.80
+33.06
+Universal
+249M
+27.00
+24.20
+24.96
+28.94
+31.73
+33.53
+39.38
+47.54
+43.11
+33.38
+SEQUENCE
+242M
+27.31
+24.24
+24.86
+29.15
+31.90
+33.84
+39.93
+48.15
+43.12
+33.61
+CYCLE
+242M
+27.23
+24.45
+25.13
+29.12
+32.10
+34.04
+39.82
+48.11
+43.19
+33.69
+CYCLE (REV)
+242M
+27.37
+24.46
+25.14
+29.16
+32.06
+33.98
+40.28
+48.34
+43.43
+33.80
++ Synthetic (back-translated) data
+Kiyono et al.
+(2020)
+514M
+-
+-
+-
+-
+33.1
+-
+-
+49.6
+42.7
+-
+CYCLE (REV)
+343M
+28.29
+24.99
+25.98
+30.01
+33.54
+34.93
+41.37
+49.55
+42.18
+34.54
+Table 2: BLEU scores on newstest2010-2016, 2018, and 2019.
+We add newstest2018 and 2019 to the set in the
+standard setting to compare the top system on WMT 2020 (Kiyono et al., 2020).
+German-to-English
+English-to-French
+French-to-English
+Method
+M
+N
+2013
+2014
+2013
+2014
+2013
+2014
+Vanilla
+6
+6
+30.48
+30.96
+33.41
+38.41
+33.48
+36.06
+Universal
+1
+6
+31.06
+31.32
+33.58
+38.84
+33.83
+37.11
+SEQUENCE
+6
+18
+31.31
+31.97
+34.49
+40.18
+34.26
+37.45
+CYCLE
+6
+18
+31.46
+32.18
+34.50
+40.17
+33.97
+37.59
+CYCLE (REV)
+6
+18
+31.32
+32.12
+34.67
+40.13
+34.16
+37.32
+Table 3: The number of layers and BLEU scores on each dataset.
+Each method is composed of almost the same
+number of parameters.
+used the WMT 2014 training dataset.
+We applied
+the same pre-processing as in (Ott et al., 2018), and
+used 35.8M English-French sentence pairs.
+Each
+configuration, we used newstest2013 and new-
+stest2014 as valid and test sets, respectively.
+We
+also measured case-sensitive detokenized BLEU
+with SacreBLEU in these experiments.
+3.3.2
+Table 3 shows BLEU scores of each method on
+each dataset.
+This table indicates that Universal
+outperformed Vanilla in all datasets.
+The proposed
+parameter sharing strategies (SEQUENCE, CYCLE,
+and CYCLE (REV)) achieved better scores than Uni-
+versal in all datasets.
+These results are consistent
+with results in Table 1.
+These results also indicate
+that the proposed strategies are more efficient than
+Universal, which shares parameters of one layer
+with all layers, because they achieved better per-
+formance with almost the same parameter size and
+computational time.
+In the comparison among the proposed strate-
+gies, CYCLE and CYCLE (REV) outperformed SE-
+QUENCE on German-to-English but it is difficult
+to conclude that CYCLE and CYCLE (REV) are
+superior to SEQUENCE on English-to-French and
+French-to-English.
+This result implies that the best
+strategy might depend on a language pair8.
+How-
+ever, we emphasize that our proposed strategies out-
+performed Universal.
+For applying our proposed
+parameter sharing strategies to other datasets, we
+recommend using SEQUENCE as a first step be-
+cause it is the easiest to implement.
+4
+Experiments on Automatic Speech
+Recognition
+4.1
+Datasets
+To investigate the effect of our proposed strate-
+gies on other modality, we conduct comparisons
+on the automatic speech recognition (ASR) task.
+We used the de-facto standard English ASR bench-
+mark dataset: LibriSpeech (Panayotov et al., 2015).
+The dataset contains 1,000 hours of English speech
+from audiobooks.
+We used the standard splits of
+LibriSpeech; used all available training data for
+training and two configurations (clean and other)
+of development and test sets for evaluation.
+We
+8Section 4 and Appendix A imply that a sort of task and
+Transformer architectures also have an influence on the per-
+formance of proposed strategies.
+Enc
+Dec
+Dev
+Test
+Method
+M
+N
+M
+N
+#Params
+Speed
+clean
+other
+clean
+other
+Vanilla
+6
+6
+6
+6
+52M
+×2.94
+3.98
+9.06
+4.18
+9.18
+Universal
+1
+6
+1
+6
+54M
+×1.00
+3.73
+8.85
+4.14
+8.80
+SEQUENCE
+8
+16
+4
+8
+50M
+×1.41
+3.16
+7.84
+3.32
+7.71
+CYCLE
+8
+16
+4
+8
+50M
+×1.41
+3.28
+7.86
+3.57
+7.97
+CYCLE (REV)
+8
+16
+4
+8
+50M
+×1.41
+3.11
+8.10
+3.60
+8.11
+Table 4: The parameter sizes, computational speeds based on the Universal configuration, and word error rates of
+each method.
+For word error rates, lower is better.
+Scores in bold denote the best results for each set.
+applied the same pre-processing as in (Wang et al.,
+2020).
+We measured word error rate on each set.
+4.2
+Table 4 shows word error rates of each method
+on each dataset.
+This table indicates that Univer-
+sal outperformed Vanilla in all sets.
+The proposed
+parameter sharing strategies (SEQUENCE, CYCLE,
+and CYCLE (REV)) achieved better scores than Uni-
+versal in all sets even though they are faster than
+Universal.
+These results are consistent with results
+in machine translation experiments in Section 3.
+Thus, the proposed strategies are also more effi-
+cient in the ASR task.
+In contrast to machine translation experiments,
+SEQUENCE outperformed CYCLE and CYCLE
+(REV) in the ASR task.
+We consider that this re-
+sult might be caused by the difference of tasks.
+In addition, the cause might be the difference of
+layer normalization positions in the Transformer
+architecture.
+We used Post-LN based method (Ad-
+min) (Liu et al., 2020) in machine translation exper-
+iments, but Pre-LN based method in this ASR task.
+Liu et al.
+(2020) and Takase et al.
+(2022) demon-
+strated that the position of the layer normalization
+has a strong effect on the property of Transform-
+ers.
+The experimental results in language modeling
+(Appendix A) also imply that SEQUENCE is more
+appropriate when we use the Pre-LN based Trans-
+former.
+The main focus of this study is empirical
+comparisons to the widely used parameter sharing
+strategy, Universal (Dehghani et al., 2019), but we
+will address theoretical analyses on the training
+dynamics in the future to understand the relation
+between parameter sharing strategies and Trans-
+former architectures.
+5
+Related Work
+Parameter Sharing
+In the past decade, various
+studies reported that a large amount of training data
+improve the performance in NLP tasks (Suzuki and
+Isozaki, 2008; Brants et al., 2007; Mikolov et al.,
+2013; Sennrich et al., 2016a; Edunov et al., 2018).
+Moreover, recent studies indicated that the larger
+parameter size we prepare, the better performance
+the model achieves when we have a large amount
+of training data (Devlin et al., 2019; Brown et al.,
+2020).
+In fact, the best system on the WMT 2020
+news translation task is composed of about 10 times
+as many parameters as the widely used Transformer
+(base) setting (Kiyono et al., 2020).
+However, due
+to the limitation on a GPU memory capacity, we
+have to explore a parameter efficient way, which
+achieves better performance while saving the pa-
+rameter size.
+Parameter sharing is a widely used technique as
+a parameter efficient way (Dehghani et al., 2019;
+Dabre and Fujita, 2019; Xia et al., 2019; Lan et al.,
+2020).
+Dehghani et al.
+(2019) proposed Universal
+Transformer.
+Their method requires parameters
+for only one layer (i.e., M = 1) of a Transformer-
+based encoder-decoder, and shares these parame-
+ters with N layers.
+Dabre and Fujita (2019) in-
+vestigated the effectiveness of Transformer sharing
+parameters of one layer across all layers on various
+translation datasets.
+Lan et al.
+(2020) used this pa-
+rameter sharing strategy to construct a parameter
+efficient model.
+As reported in these studies, we
+can achieve better performance by the Transformer
+sharing parameters of one layer across all layers
+when we use the same parameter size as the original
+Transformer.
+However, this strategy requires much
+more computational time as described in Table 1
+because weight matrices for each layer are much
+larger.
+To solve this problem, we propose a new
+parameter sharing strategies that prepare parame-
+ters for M layers and assign them into N layers,
+where 1 ≤M ≤N.
+Experimental results show
+that our proposed strategies are more efficient than
+the method sharing parameters of one layer with
+across layers (Dehghani et al., 2019; Dabre and
+Fujita, 2019; Lan et al., 2020).
+In addition, experi-
+mental results imply that the proposed parameter
+sharing strategies are effective to improve the per-
+formance.
+In fact, in language modeling, previous
+studies demonstrated that the parameter sharing is
+useful to improve the performance (Melis et al.,
+2018; Merity et al., 2018; Takase et al., 2018),
+Xia et al.
+(2019) proposed an encoder-decoder
+which shares parameters of the encoder part and de-
+coder part.
+Xiao et al.
+(2019) proposed the method
+to share the attention weights to make the compu-
+tation of Transformers fast.
+These techniques are
+orthogonal to our proposed method.
+Thus, we can
+combine them to improve the efficiency of parame-
+ters and computational time.
+Training Acceleration
+In this study, we explore
+a parameter efficient method.
+On the other hand,
+recent studies proposed method to accelerate the
+training.
+Li et al.
+(2020) proposed a training strat-
+egy for a deep Transformer.
+Their strategy trains a
+shallow model and then stacks layers to construct a
+deep model.
+They repeat this procedure until the de-
+sired deep model.
+They indicated that their strategy
+was faster than the training of whole parameters
+of a deep Transformer.
+Takase and Kiyono (2021)
+compared regularization methods in terms of train-
+ing time.
+Their experimental results show that the
+simple regularizations such as word dropout are
+more efficient than complex ones such as adver-
+sarial perturbations.
+We can use those findings to
+accelerate the training of our proposed strategies.
+Deep Transformers
+To raise expressiveness
+power of Transformers, we stack many layers
+in the proposed method.
+The stability of train-
+ing deep Transformers depends on their architec-
+tures (Nguyen and Salazar, 2019; Xiong et al.,
+2020; Liu et al., 2020).
+Transformer architectures
+can be categorized into two types based on the
+position of layer normalizations: Post-LN and Pre-
+LN.
+Most of recent studies used the Pre-LN set-
+ting when they stacked many layers (Wang et al.,
+2019; Brown et al., 2020) because Pre-LN makes
+the training process more stable than the Post-
+LN setting, which is used in the original Trans-
+former (Nguyen and Salazar, 2019; Xiong et al.,
+2020).
+On the other hand, several studies proposed
+methods to stabilize the training of Post-LN based
+Transformers (Liu et al., 2020; Takase et al., 2022).
+In this study, we used Admin (Liu et al., 2020) in
+machine translation experiments because it stabi-
+lizes the training of Post-LN based Transformers
+while keeping the advantages of Post-LN in the ma-
+chine translation task.
+For other experiments, we
+used the Pre-LN configuration based on the imple-
+mentations of baselines.
+These experiments show
+that our proposed strategies are effective in major
+two architectures: Post-LN and Pre-LN.
+Table 5 shows perplexities of each method.
+This
+table indicates that Vanilla achieved better perfor-
+mance than Universal.
+Thus, the sharing param-
+eters of one layer with all layers might not be
+suitable for a large-scaled language modeling task.
+In contrast, the proposed strategies outperformed
+Vanilla.
+This result indicates that our proposed
+strategies are also more efficient than Universal in
+the language modeling.
+Through the comparison among proposed strate-
+gies, SEQUENCE achieved the best perplexity.
+As
+described in Section 4, SEQUENCE might be more
+appropriate to the Transformer with the Pre-LN
+configuration.
+To explore the reason, we believe
+that we have to conduct the theoretical analysis of
+the Transformer during its training.
+We address
+this issue in the future study.
+The lower part of Table 5 shows the reported
+score of Baevski and Auli (2019), our reproduced
+score, and SEQUENCE with more parameters.
+This
+part indicates that SEQUENCE achieved better per-
+plexities than others even though the parameter size
+of SEQUENCE is smaller.
+Therefore, SEQUENCE is
+also efficient when we prepare a large amount of
+parameters for a language model.
+Method
+#Params
+Valid
+Test
+Vanilla
+121M
+20.39
+21.13
+Universal
+121M
+22.75
+23.84
+SEQUENCE
+121M
+18.97
+19.69
+CYCLE
+121M
+19.00
+19.69
+CYCLE (REV)
+121M
+19.60
+20.24
+Models with more parameters
+Baevski and Auli (2019)†
+247M
+18.53
+19.24
+Baevski and Auli (2019)
+247M
+-
+18.7
+SEQUENCE
+234M
+17.71
+18.55
+Table 5: The parameter sizes and perplexities of each
+method.
+The lower part indicates scores reported in
+Baevski and Auli (2019) and the score of SEQUENCE
+with more parameters.
+Scores in bold denote the best
+results for each set.
+† represents our re-run of Baevski
+and Auli (2019).
+B
+Details of Experimental Settings
+We used NVIDIATesla V100 GPUs for all exper-
+iments.
+Table 6 shows the hyper-parameters for
+training in each task.
+The descriptions in our code
+also help to understand configurations in this study.
+Params
+Machine Translation
+ASR
+Language Model
+Leaning rate
+0.001
+0.001
+0.001
+Scheduler
+inverse sqrt
+inverse sqrt
+inverse sqrt
+Adam β
+(0.9, 0.98)
+(0.9, 0.98)
+(0.9, 0.98)
+Warmup updates
+4k
+4k
+2k
+Max updates
+50k
+150k
+50k
+Table 6: Hyper-parameters used in our experiments.
+5.1
+QUANTITATIVE RESULTS
+In Table 1, we list the translation performances measured in BLEU score.
+It is clear from the table
+that in all the cases, the proposed RNNsearch outperforms the conventional RNNencdec.
+More
+importantly, the performance of the RNNsearch is as high as that of the conventional phrase-based
+translation system (Moses), when only the sentences consisting of known words are considered.
+This is a signiﬁcant achievement, considering that Moses uses a separate monolingual corpus (418M
+words) in addition to the parallel corpora we used to train the RNNsearch and RNNencdec.
+6 We used the tokenization script from the open-source machine translation package, Moses.
+7 In this paper, by a ’hidden unit’, we always mean the gated hidden unit (see Appendix A.1.1).
+5
+Published as a conference paper at ICLR 2015
+The
+agreement
+on
+the
+European
+Economic
+Area
+was
+signed
+in
+August
+1992
+.
+<end>
+L'
+accord
+sur
+la
+zone
+économique
+européenne
+a
+été
+signé
+en
+août
+1992
+.
+<end>
+It
+should
+be
+noted
+that
+the
+marine
+environment
+is
+the
+least
+known
+of
+environments
+.
+<end>
+Il
+convient
+de
+noter
+que
+l'
+environnement
+marin
+est
+le
+moins
+connu
+de
+l'
+environnement
+.
+<end>
+(a)
+(b)
+Destruction
+of
+the
+equipment
+means
+that
+Syria
+can
+no
+longer
+produce
+new
+chemical
+weapons
+.
+<end>
+La
+destruction
+de
+l'
+équipement
+signifie
+que
+la
+Syrie
+ne
+peut
+plus
+produire
+de
+nouvelles
+armes
+chimiques
+.
+<end>
+"
+This
+will
+change
+my
+future
+with
+my
+family
+,
+"
+the
+man
+said
+.
+<end>
+"
+Cela
+va
+changer
+mon
+avenir
+avec
+ma
+famille
+"
+,
+a
+dit
+l'
+homme
+.
+<end>
+(c)
+(d)
+Figure 3:
+Four sample alignments found by RNNsearch-50.
+The x-axis and y-axis of each plot
+correspond to the words in the source sentence (English) and the generated translation (French),
+respectively.
+Each pixel shows the weight αij of the annotation of the j-th source word for the i-th
+target word (see Eq.
+(6)), in grayscale (0: black, 1: white).
+(a) an arbitrary sentence.
+(b–d) three
+randomly selected samples among the sentences without any unknown words and of length between
+10 and 20 words from the test set.
+One of the motivations behind the proposed approach was the use of a ﬁxed-length context vector
+in the basic encoder–decoder approach.
+We conjectured that this limitation may make the basic
+encoder–decoder approach to underperform with long sentences.
+In Fig.
+2, we see that the perfor-
+mance of RNNencdec dramatically drops as the length of the sentences increases.
+On the other hand,
+both RNNsearch-30 and RNNsearch-50 are more robust to the length of the sentences.
+RNNsearch-
+50, especially, shows no performance deterioration even with sentences of length 50 or more.
+This
+superiority of the proposed model over the basic encoder–decoder is further conﬁrmed by the fact
+that the RNNsearch-30 even outperforms RNNencdec-50 (see Table 1).
+6
+Published as a conference paper at ICLR 2015
+Model
+All
+No UNK◦
+RNNencdec-30
+13.93
+24.19
+RNNsearch-30
+21.50
+31.44
+RNNencdec-50
+17.82
+26.71
+RNNsearch-50
+26.75
+34.16
+RNNsearch-50⋆
+28.45
+36.15
+Moses
+33.30
+35.63
+Table 1: BLEU scores of the trained models com-
+puted on the test set.
+The second and third columns
+show respectively the scores on all the sentences and,
+on the sentences without any unknown word in them-
+selves and in the reference translations.
+Note that
+RNNsearch-50⋆was trained much longer until the
+performance on the development set stopped improv-
+ing.
+(◦) We disallowed the models to generate [UNK]
+tokens when only the sentences having no unknown
+words were evaluated (last column).
+5.2
+QUALITATIVE ANALYSIS
+5.2.1
+ALIGNMENT
+The proposed approach provides an intuitive way to inspect the (soft-)alignment between the words
+in a generated translation and those in a source sentence.
+This is done by visualizing the annotation
+weights αij from Eq.
+(6), as in Fig.
+3.
+Each row of a matrix in each plot indicates the weights
+associated with the annotations.
+From this we see which positions in the source sentence were
+considered more important when generating the target word.
+We can see from the alignments in Fig.
+3 that the alignment of words between English and French
+is largely monotonic.
+We see strong weights along the diagonal of each matrix.
+However, we also
+observe a number of non-trivial, non-monotonic alignments.
+Adjectives and nouns are typically
+ordered differently between French and English, and we see an example in Fig.
+3 (a).
+From this
+ﬁgure, we see that the model correctly translates a phrase [European Economic Area] into [zone
+´economique europ´een].
+The RNNsearch was able to correctly align [zone] with [Area], jumping
+over the two words ([European] and [Economic]), and then looked one word back at a time to
+complete the whole phrase [zone ´economique europ´eenne].
+The strength of the soft-alignment, opposed to a hard-alignment, is evident, for instance, from
+Fig.
+3 (d).
+Consider the source phrase [the man] which was translated into [l’ homme].
+Any hard
+alignment will map [the] to [l’] and [man] to [homme].
+This is not helpful for translation, as one
+must consider the word following [the] to determine whether it should be translated into [le], [la],
+[les] or [l’].
+Our soft-alignment solves this issue naturally by letting the model look at both [the] and
+[man], and in this example, we see that the model was able to correctly translate [the] into [l’].
+We
+observe similar behaviors in all the presented cases in Fig.
+3.
+An additional beneﬁt of the soft align-
+ment is that it naturally deals with source and target phrases of different lengths, without requiring a
+counter-intuitive way of mapping some words to or from nowhere ([NULL]) (see, e.g., Chapters 4
+and 5 of Koehn, 2010).
+5.2.2
+LONG SENTENCES
+As clearly visible from Fig.
+2 the proposed model (RNNsearch) is much better than the conventional
+model (RNNencdec) at translating long sentences.
+This is likely due to the fact that the RNNsearch
+does not require encoding a long sentence into a ﬁxed-length vector perfectly, but only accurately
+encoding the parts of the input sentence that surround a particular word.
+As an example, consider this source sentence from the test set:
+An admitting privilege is the right of a doctor to admit a patient to a hospital or
+a medical centre to carry out a diagnosis or a procedure, based on his status as a
+health care worker at a hospital.
+The RNNencdec-50 translated this sentence into:
+Un privil`ege d’admission est le droit d’un m´edecin de reconnaˆıtre un patient `a
+l’hˆopital ou un centre m´edical d’un diagnostic ou de prendre un diagnostic en
+fonction de son ´etat de sant´e.
+7
+Published as a conference paper at ICLR 2015
+The RNNencdec-50 correctly translated the source sentence until [a medical center].
+However, from
+there on (underlined), it deviated from the original meaning of the source sentence.
+For instance, it
+replaced [based on his status as a health care worker at a hospital] in the source sentence with [en
+fonction de son ´etat de sant´e] (“based on his state of health”).
+On the other hand, the RNNsearch-50 generated the following correct translation, preserving the
+whole meaning of the input sentence without omitting any details:
+Un privil`ege d’admission est le droit d’un m´edecin d’admettre un patient `a un
+hˆopital ou un centre m´edical pour effectuer un diagnostic ou une proc´edure, selon
+son statut de travailleur des soins de sant´e `a l’hˆopital.
+Let us consider another sentence from the test set:
+This kind of experience is part of Disney’s efforts to ”extend the lifetime of its
+series and build new relationships with audiences via digital platforms that are
+becoming ever more important,” he added.
+The translation by the RNNencdec-50 is
+Ce type d’exp´erience fait partie des initiatives du Disney pour ”prolonger la dur´ee
+de vie de ses nouvelles et de d´evelopper des liens avec les lecteurs num´eriques qui
+deviennent plus complexes.
+As with the previous example, the RNNencdec began deviating from the actual meaning of the
+source sentence after generating approximately 30 words (see the underlined phrase).
+After that
+point, the quality of the translation deteriorates, with basic mistakes such as the lack of a closing
+quotation mark.
+Again, the RNNsearch-50 was able to translate this long sentence correctly:
+Ce genre d’exp´erience fait partie des efforts de Disney pour ”prolonger la dur´ee
+de vie de ses s´eries et cr´eer de nouvelles relations avec des publics via des
+plateformes num´eriques de plus en plus importantes”, a-t-il ajout´e.
+In conjunction with the quantitative results presented already, these qualitative observations con-
+ﬁrm our hypotheses that the RNNsearch architecture enables far more reliable translation of long
+sentences than the standard RNNencdec model.
+In Appendix C, we provide a few more sample translations of long source sentences generated by
+the RNNencdec-50, RNNsearch-50 and Google Translate along with the reference translations.
+6
+RELATED WORK
+6.1
+LEARNING TO ALIGN
+A similar approach of aligning an output symbol with an input symbol was proposed recently by
+Graves (2013) in the context of handwriting synthesis.
+Handwriting synthesis is a task where the
+model is asked to generate handwriting of a given sequence of characters.
+In his work, he used a
+mixture of Gaussian kernels to compute the weights of the annotations, where the location, width
+and mixture coefﬁcient of each kernel was predicted from an alignment model.
+More speciﬁcally,
+his alignment was restricted to predict the location such that the location increases monotonically.
+The main difference from our approach is that, in (Graves, 2013), the modes of the weights of the
+annotations only move in one direction.
+In the context of machine translation, this is a severe limi-
+tation, as (long-distance) reordering is often needed to generate a grammatically correct translation
+(for instance, English-to-German).
+Our approach, on the other hand, requires computing the annotation weight of every word in the
+source sentence for each word in the translation.
+This drawback is not severe with the task of
+translation in which most of input and output sentences are only 15–40 words.
+However, this may
+limit the applicability of the proposed scheme to other tasks.
+8
+Published as a conference paper at ICLR 2015
+6.2
+NEURAL NETWORKS FOR MACHINE TRANSLATION
+Since Bengio et al.
+(2003) introduced a neural probabilistic language model which uses a neural net-
+work to model the conditional probability of a word given a ﬁxed number of the preceding words,
+neural networks have widely been used in machine translation.
+However, the role of neural net-
+works has been largely limited to simply providing a single feature to an existing statistical machine
+translation system or to re-rank a list of candidate translations provided by an existing system.
+For instance, Schwenk (2012) proposed using a feedforward neural network to compute the score of
+a pair of source and target phrases and to use the score as an additional feature in the phrase-based
+statistical machine translation system.
+More recently, Kalchbrenner and Blunsom (2013) and Devlin
+et al.
+(2014) reported the successful use of the neural networks as a sub-component of the existing
+translation system.
+Traditionally, a neural network trained as a target-side language model has been
+used to rescore or rerank a list of candidate translations (see, e.g., Schwenk et al., 2006).
+Although the above approaches were shown to improve the translation performance over the state-
+of-the-art machine translation systems, we are more interested in a more ambitious objective of
+designing a completely new translation system based on neural networks.
+The neural machine trans-
+lation approach we consider in this paper is therefore a radical departure from these earlier works.
+Rather than using a neural network as a part of the existing system, our model works on its own and
+generates a translation from a source sentence directly.
+Table
+1
+compares
+the
+published
+BERTBASE results from Devlin et al.
+(2019) to our
+reimplementation with either static or dynamic
+masking.
+We ﬁnd that our reimplementation
+with static masking performs similar to the
+original BERT model, and dynamic masking is
+comparable or slightly better than static masking.
+Given these results and the additional efﬁciency
+beneﬁts of dynamic masking, we use dynamic
+masking in the remainder of the experiments.
+4.2
+Model Input Format and Next Sentence
+Prediction
+In the original BERT pretraining procedure, the
+model observes two concatenated document seg-
+ments, which are either sampled contiguously
+from the same document (with p = 0.5) or from
+distinct documents.
+In addition to the masked lan-
+guage modeling objective, the model is trained to
+predict whether the observed document segments
+come from the same or distinct documents via an
+auxiliary Next Sentence Prediction (NSP) loss.
+The NSP loss was hypothesized to be an impor-
+tant factor in training the original BERT model.
+Devlin et al.
+(2019) observe that removing NSP
+hurts performance, with signiﬁcant performance
+degradation on QNLI, MNLI, and SQuAD 1.1.
+However, some recent work has questioned the
+necessity of the NSP loss (Lample and Conneau,
+2019; Yang et al., 2019; Joshi et al., 2019).
+To better understand this discrepancy, we com-
+pare several alternative training formats:
+• SEGMENT-PAIR+NSP: This follows the original
+input format used in BERT (Devlin et al., 2019),
+with the NSP loss.
+Each input has a pair of seg-
+ments, which can each contain multiple natural
+sentences, but the total combined length must
+be less than 512 tokens.
+Model
+SQuAD 1.1/2.0
+MNLI-m
+SST-2
+RACE
+Our reimplementation (with NSP loss):
+SEGMENT-PAIR
+90.4/78.7
+84.0
+92.9
+64.2
+SENTENCE-PAIR
+88.7/76.2
+82.9
+92.1
+63.0
+Our reimplementation (without NSP loss):
+FULL-SENTENCES
+90.4/79.1
+84.7
+92.5
+64.8
+DOC-SENTENCES
+90.6/79.7
+84.7
+92.7
+65.6
+BERTBASE
+88.5/76.3
+84.3
+92.8
+64.3
+XLNetBASE (K = 7)
+–/81.3
+85.8
+92.7
+66.1
+XLNetBASE (K = 6)
+–/81.0
+85.6
+93.4
+66.7
+Table 2: Development set results for base models pretrained over BOOKCORPUS and WIKIPEDIA.
+All models are
+trained for 1M steps with a batch size of 256 sequences.
+We report F1 for SQuAD and accuracy for MNLI-m,
+SST-2 and RACE.
+Reported results are medians over ﬁve random initializations (seeds).
+Results for BERTBASE and
+XLNetBASE are from Yang et al.
+(2019).
+• SENTENCE-PAIR+NSP: Each input contains a
+pair of natural sentences, either sampled from
+a contiguous portion of one document or from
+separate documents.
+Since these inputs are sig-
+niﬁcantly shorter than 512 tokens, we increase
+the batch size so that the total number of tokens
+remains similar to SEGMENT-PAIR+NSP.
+We re-
+tain the NSP loss.
+• FULL-SENTENCES: Each input is packed with
+full sentences sampled contiguously from one
+or more documents, such that the total length is
+at most 512 tokens.
+Inputs may cross document
+boundaries.
+When we reach the end of one doc-
+ument, we begin sampling sentences from the
+next document and add an extra separator token
+between documents.
+We remove the NSP loss.
+• DOC-SENTENCES: Inputs are constructed sim-
+ilarly to FULL-SENTENCES, except that they
+may not cross document boundaries.
+Inputs
+sampled near the end of a document may be
+shorter than 512 tokens, so we dynamically in-
+crease the batch size in these cases to achieve
+a similar number of total tokens as FULL-
+SENTENCES.
+We remove the NSP loss.
+Table 2 shows results for the four dif-
+ferent settings.
+We ﬁrst compare the original
+SEGMENT-PAIR input format from Devlin et al.
+(2019) to the SENTENCE-PAIR format; both for-
+mats retain the NSP loss, but the latter uses sin-
+gle sentences.
+We ﬁnd that using individual
+sentences hurts performance on downstream
+tasks, which we hypothesize is because the model
+is not able to learn long-range dependencies.
+We next compare training without the NSP
+loss and training with blocks of text from a sin-
+gle document (DOC-SENTENCES).
+We ﬁnd that
+this setting outperforms the originally published
+BERTBASE results and that removing the NSP loss
+matches or slightly improves downstream task
+performance, in contrast to Devlin et al.
+(2019).
+It is possible that the original BERT implementa-
+tion may only have removed the loss term while
+still retaining the SEGMENT-PAIR input format.
+Finally we ﬁnd that restricting sequences to
+come from a single document (DOC-SENTENCES)
+performs slightly better than packing sequences
+from multiple documents (FULL-SENTENCES).
+However, because the DOC-SENTENCES format
+results in variable batch sizes, we use FULL-
+SENTENCES in the remainder of our experiments
+for easier comparison with related work.
+4.3
+Training with large batches
+Past work in Neural Machine Translation has
+shown that training with very large mini-batches
+can both improve optimization speed and end-task
+performance when the learning rate is increased
+appropriately (Ott et al., 2018).
+Recent work has
+shown that BERT is also amenable to large batch
+training (You et al., 2019).
+Devlin et al.
+(2019)
+originally
+trained
+BERTBASE for 1M steps with a batch size of
+256 sequences.
+This is equivalent in computa-
+tional cost, via gradient accumulation, to training
+for 125K steps with a batch size of 2K sequences,
+or for 31K steps with a batch size of 8K.
+In Table 3 we compare perplexity and end-
+bsz
+steps
+lr
+ppl
+MNLI-m
+SST-2
+256
+1M
+1e-4
+3.99
+84.7
+92.7
+2K
+125K
+7e-4
+3.68
+85.2
+92.9
+8K
+31K
+1e-3
+3.77
+84.6
+92.8
+Table 3: Perplexity on held-out training data (ppl) and
+development set accuracy for base models trained over
+BOOKCORPUS and WIKIPEDIA with varying batch
+sizes (bsz).
+We tune the learning rate (lr) for each set-
+ting.
+Models make the same number of passes over the
+data (epochs) and have the same computational cost.
+task performance of BERTBASE as we increase the
+batch size, controlling for the number of passes
+through the training data.
+We observe that train-
+ing with large batches improves perplexity for the
+masked language modeling objective, as well as
+end-task accuracy.
+Large batches are also easier to
+parallelize via distributed data parallel training,8
+and in later experiments we train with batches of
+8K sequences.
+Notably You et al.
+(2019) train BERT with even
+larger batche sizes, up to 32K sequences.
+We leave
+further exploration of the limits of large batch
+training to future work.
+4.4
+Text Encoding
+Byte-Pair Encoding (BPE) (Sennrich et al., 2016)
+is a hybrid between character- and word-level rep-
+resentations that allows handling the large vocab-
+ularies common in natural language corpora.
+In-
+stead of full words, BPE relies on subwords units,
+which are extracted by performing statistical anal-
+ysis of the training corpus.
+BPE vocabulary sizes typically range from
+10K-100K subword units.
+However, unicode char-
+acters can account for a sizeable portion of this
+vocabulary when modeling large and diverse cor-
+pora, such as the ones considered in this work.
+Radford et al.
+(2019) introduce a clever imple-
+mentation of BPE that uses bytes instead of uni-
+code characters as the base subword units.
+Using
+bytes makes it possible to learn a subword vocab-
+ulary of a modest size (50K units) that can still en-
+code any input text without introducing any “un-
+known” tokens.
+8Large batch training can improve training efﬁciency even
+without large scale parallel hardware through gradient ac-
+cumulation, whereby gradients from multiple mini-batches
+are accumulated locally before each optimization step.
+This
+functionality is supported natively in FAIRSEQ (Ott et al.,
+2019).
+The
+original
+BERT
+implementa-
+tion (Devlin et al., 2019) uses a character-level
+BPE vocabulary of size 30K, which is learned
+after preprocessing the input with heuristic tok-
+enization rules.
+Following Radford et al.
+(2019),
+we instead consider training BERT with a larger
+byte-level BPE vocabulary containing 50K sub-
+word units, without any additional preprocessing
+or tokenization of the input.
+This adds approxi-
+mately 15M and 20M additional parameters for
+BERTBASE and BERTLARGE, respectively.
+Early experiments revealed only slight dif-
+ferences between these encodings,
+with the
+Radford et al.
+(2019)
+BPE achieving
+slightly
+worse end-task performance on some tasks.
+Nev-
+ertheless, we believe the advantages of a univer-
+sal encoding scheme outweighs the minor degre-
+dation in performance and use this encoding in
+the remainder of our experiments.
+A more de-
+tailed comparison of these encodings is left to fu-
+ture work.
+5
+RoBERTa
+In the previous section we propose modiﬁcations
+to the BERT pretraining procedure that improve
+end-task performance.
+We now aggregate these
+improvements and evaluate their combined im-
+pact.
+We call this conﬁguration RoBERTa for
+Robustly optimized BERT approach.
+Speciﬁ-
+cally, RoBERTa is trained with dynamic mask-
+ing (Section 4.1), FULL-SENTENCES without NSP
+loss (Section 4.2), large mini-batches (Section 4.3)
+and a larger byte-level BPE (Section 4.4).
+Additionally, we investigate two other impor-
+tant factors that have been under-emphasized in
+previous work: (1) the data used for pretraining,
+and (2) the number of training passes through the
+data.
+For example, the recently proposed XLNet
+architecture (Yang et al., 2019) is pretrained us-
+ing nearly 10 times more data than the original
+BERT (Devlin et al., 2019).
+It is also trained with
+a batch size eight times larger for half as many op-
+timization steps, thus seeing four times as many
+sequences in pretraining compared to BERT.
+To help disentangle the importance of these fac-
+tors from other modeling choices (e.g., the pre-
+training objective), we begin by training RoBERTa
+following the BERTLARGE architecture (L = 24,
+H = 1024, A = 16, 355M parameters).
+We
+pretrain for 100K steps over a comparable BOOK-
+CORPUS plus WIKIPEDIA dataset as was used in
+Model
+data
+bsz
+steps
+SQuAD
+MNLI-m
+SST-2
+(v1.1/2.0)
+RoBERTa
+with BOOKS + WIKI
+16GB
+8K
+100K
+93.6/87.3
+89.0
+95.3
++ additional data (§3.2)
+160GB
+8K
+100K
+94.0/87.7
+89.3
+95.6
++ pretrain longer
+160GB
+8K
+300K
+94.4/88.7
+90.0
+96.1
++ pretrain even longer
+160GB
+8K
+500K
+94.6/89.4
+90.2
+96.4
+BERTLARGE
+with BOOKS + WIKI
+13GB
+256
+1M
+90.9/81.8
+86.6
+93.7
+XLNetLARGE
+with BOOKS + WIKI
+13GB
+256
+1M
+94.0/87.8
+88.4
+94.4
++ additional data
+126GB
+2K
+500K
+94.5/88.8
+89.8
+95.6
+Table 4: Development set results for RoBERTa as we pretrain over more data (16GB →160GB of text) and pretrain
+for longer (100K →300K →500K steps).
+Each row accumulates improvements from the rows above.
+RoBERTa
+matches the architecture and training objective of BERTLARGE.
+Results for BERTLARGE and XLNetLARGE are from
+Devlin et al.
+(2019) and Yang et al.
+(2019), respectively.
+Complete results on all GLUE tasks can be found in the
+Appendix.
+Devlin et al.
+(2019).
+We pretrain our model using
+1024 V100 GPUs for approximately one day.
+We present our results in Table 4.
+When
+controlling for training data, we observe that
+RoBERTa provides a large improvement over the
+originally reported BERTLARGE results, reafﬁrming
+the importance of the design choices we explored
+in Section 4.
+Next, we combine this data with the three ad-
+ditional datasets described in Section 3.2.
+We
+train RoBERTa over the combined data with the
+same number of training steps as before (100K).
+In total, we pretrain over 160GB of text.
+We ob-
+serve further improvements in performance across
+all downstream tasks, validating the importance of
+data size and diversity in pretraining.9
+Finally, we pretrain RoBERTa for signiﬁcantly
+longer, increasing the number of pretraining steps
+from 100K to 300K, and then further to 500K.
+We
+again observe signiﬁcant gains in downstream task
+performance, and the 300K and 500K step mod-
+els outperform XLNetLARGE across most tasks.
+We
+note that even our longest-trained model does not
+appear to overﬁt our data and would likely beneﬁt
+from additional training.
+In the rest of the paper, we evaluate our best
+RoBERTa model on the three different bench-
+marks: GLUE, SQuaD and RACE.
+Speciﬁcally
+9Our experiments conﬂate increases in data size and di-
+versity.
+We leave a more careful analysis of these two dimen-
+sions to future work.
+we consider RoBERTa trained for 500K steps over
+all ﬁve of the datasets introduced in Section 3.2.
+5.1
+GLUE Results
+For GLUE we consider two ﬁnetuning settings.
+In the ﬁrst setting (single-task, dev) we ﬁnetune
+RoBERTa separately for each of the GLUE tasks,
+using only the training data for the correspond-
+ing task.
+We consider a limited hyperparameter
+sweep for each task, with batch sizes ∈{16, 32}
+and learning rates ∈{1e−5, 2e−5, 3e−5}, with a
+linear warmup for the ﬁrst 6% of steps followed by
+a linear decay to 0.
+We ﬁnetune for 10 epochs and
+perform early stopping based on each task’s eval-
+uation metric on the dev set.
+The rest of the hyper-
+parameters remain the same as during pretraining.
+In this setting, we report the median development
+set results for each task over ﬁve random initial-
+izations, without model ensembling.
+In the second setting (ensembles, test), we com-
+pare RoBERTa to other approaches on the test set
+via the GLUE leaderboard.
+While many submis-
+sions to the GLUE leaderboard depend on multi-
+task ﬁnetuning, our submission depends only on
+single-task ﬁnetuning.
+For RTE, STS and MRPC
+we found it helpful to ﬁnetune starting from the
+MNLI single-task model, rather than the baseline
+pretrained RoBERTa.
+We explore a slightly wider
+hyperparameter space, described in the Appendix,
+and ensemble between 5 and 7 models per task.
+MNLI
+QNLI
+QQP
+RTE
+SST
+MRPC
+CoLA
+STS
+WNLI
+Avg
+Single-task single models on dev
+BERTLARGE
+86.6/-
+92.3
+91.3
+70.4
+93.2
+88.0
+60.6
+90.0
+-
+-
+XLNetLARGE
+89.8/-
+93.9
+91.8
+83.8
+95.6
+89.2
+63.6
+91.8
+-
+-
+RoBERTa
+90.2/90.2
+94.7
+92.2
+86.6
+96.4
+90.9
+68.0
+92.4
+91.3
+-
+Ensembles on test (from leaderboard as of July 25, 2019)
+ALICE
+88.2/87.9
+95.7
+90.7
+83.5
+95.2
+92.6
+68.6
+91.1
+80.8
+86.3
+MT-DNN
+87.9/87.4
+96.0
+89.9
+86.3
+96.5
+92.7
+68.4
+91.1
+89.0
+87.6
+XLNet
+90.2/89.8
+98.6
+90.3
+86.3
+96.8
+93.0
+67.8
+91.6
+90.4
+88.4
+RoBERTa
+90.8/90.2
+98.9
+90.2
+88.2
+96.7
+92.3
+67.8
+92.2
+89.0
+88.5
+Table 5: Results on GLUE.
+All results are based on a 24-layer architecture.
+BERTLARGE and XLNetLARGE results
+are from Devlin et al.
+(2019) and Yang et al.
+(2019), respectively.
+RoBERTa results on the development set are a
+median over ﬁve runs.
+RoBERTa results on the test set are ensembles of single-task models.
+For RTE, STS and
+MRPC we ﬁnetune starting from the MNLI model instead of the baseline pretrained model.
+Averages are obtained
+from the GLUE leaderboard.
+Task-speciﬁc modiﬁcations
+Two of the GLUE
+tasks require task-speciﬁc ﬁnetuning approaches
+to achieve competitive leaderboard results.
+QNLI:
+Recent submissions on the GLUE
+leaderboard adopt a pairwise ranking formulation
+for the QNLI task, in which candidate answers
+are mined from the training set and compared to
+one another, and a single (question, candidate)
+pair is classiﬁed as positive (Liu et al., 2019b,a;
+Yang et al., 2019).
+This formulation signiﬁcantly
+simpliﬁes the task, but is not directly comparable
+to BERT (Devlin et al., 2019).
+Following recent
+work, we adopt the ranking approach for our test
+submission, but for direct comparison with BERT
+we report development set results based on a pure
+classiﬁcation approach.
+WNLI:
+We found the provided NLI-format
+data to be challenging to work with.
+Instead
+we use the reformatted WNLI data from Super-
+GLUE (Wang et al., 2019a), which indicates the
+span of the query pronoun and referent.
+We ﬁne-
+tune RoBERTa using the margin ranking loss from
+Kocijan et al.
+(2019).
+For a given input sentence,
+we use spaCy (Honnibal and Montani, 2017) to
+extract additional candidate noun phrases from the
+sentence and ﬁnetune our model so that it assigns
+higher scores to positive referent phrases than for
+any of the generated negative candidate phrases.
+One unfortunate consequence of this formulation
+is that we can only make use of the positive train-
+ing examples, which excludes over half of the pro-
+vided training examples.10
+10While we only use the provided WNLI training data, our
+We present our results in Table 5.
+In the
+ﬁrst setting (single-task, dev), RoBERTa achieves
+state-of-the-art results on all 9 of the GLUE
+task development sets.
+Crucially, RoBERTa uses
+the same masked language modeling pretrain-
+ing objective and architecture as BERTLARGE, yet
+consistently outperforms both BERTLARGE and
+XLNetLARGE.
+This raises questions about the rel-
+ative importance of model architecture and pre-
+training objective, compared to more mundane de-
+tails like dataset size and training time that we ex-
+plore in this work.
+In the second setting (ensembles, test), we
+submit RoBERTa to the GLUE leaderboard and
+achieve state-of-the-art results on 4 out of 9 tasks
+and the highest average score to date.
+This is espe-
+cially exciting because RoBERTa does not depend
+on multi-task ﬁnetuning, unlike most of the other
+top submissions.
+We expect future work may fur-
+ther improve these results by incorporating more
+sophisticated multi-task ﬁnetuning procedures.
+5.2
+SQuAD Results
+We adopt a much simpler approach for SQuAD
+compared to past work.
+In particular, while
+both
+BERT
+(Devlin et al.,
+2019)
+and
+XL-
+Net (Yang et al., 2019) augment their training data
+with additional QA datasets, we only ﬁnetune
+RoBERTa using the provided SQuAD training
+data.
+Yang et al.
+(2019) also employed a custom
+layer-wise learning rate schedule to ﬁnetune
+results could potentially be improved by augmenting this with
+additional pronoun disambiguation datasets.
+Model
+SQuAD 1.1
+SQuAD 2.0
+EM
+F1
+EM
+F1
+Single models on dev, w/o data augmentation
+BERTLARGE
+84.1
+90.9
+79.0
+81.8
+XLNetLARGE
+89.0
+94.5
+86.1
+88.8
+RoBERTa
+88.9
+94.6
+86.5
+89.4
+Single models on test (as of July 25, 2019)
+XLNetLARGE
+86.3†
+89.1†
+RoBERTa
+86.8
+89.8
+XLNet + SG-Net Veriﬁer
+87.0†
+89.9†
+Table 6: Results on SQuAD.
+† indicates results that de-
+pend on additional external training data.
+RoBERTa
+uses only the provided SQuAD data in both dev and
+test settings.
+BERTLARGE and XLNetLARGE results are
+from Devlin et al.
+(2019) and Yang et al.
+(2019), re-
+spectively.
+XLNet, while we use the same learning rate for
+all layers.
+For SQuAD v1.1 we follow the same ﬁnetun-
+ing procedure as Devlin et al.
+(2019).
+For SQuAD
+v2.0, we additionally classify whether a given
+question is answerable; we train this classiﬁer
+jointly with the span predictor by summing the
+classiﬁcation and span loss terms.
+We present our results in Table 6.
+On
+the SQuAD v1.1 development set, RoBERTa
+matches the state-of-the-art set by XLNet.
+On the
+SQuAD v2.0 development set, RoBERTa sets a
+new state-of-the-art, improving over XLNet by 0.4
+points (EM) and 0.6 points (F1).
+We also submit RoBERTa to the public SQuAD
+2.0 leaderboard and evaluate its performance rel-
+ative to other systems.
+Most of the top systems
+build upon either BERT (Devlin et al., 2019) or
+XLNet (Yang et al., 2019), both of which rely on
+additional external training data.
+In contrast, our
+submission does not use any additional data.
+Our single RoBERTa model outperforms all but
+one of the single model submissions, and is the
+top scoring system among those that do not rely
+on data augmentation.
+5.3
+RACE Results
+In RACE, systems are provided with a passage of
+text, an associated question, and four candidate an-
+swers.
+Systems are required to classify which of
+the four candidate answers is correct.
+We modify RoBERTa for this task by concate-
+Model
+Accuracy
+Middle
+High
+Single models on test (as of July 25, 2019)
+BERTLARGE
+72.0
+76.6
+70.1
+XLNetLARGE
+81.7
+85.4
+80.2
+RoBERTa
+83.2
+86.5
+81.3
+Table 7: Results on the RACE test set.
+BERTLARGE and
+XLNetLARGE results are from Yang et al.
+(2019).
+nating each candidate answer with the correspond-
+ing question and passage.
+We then encode each of
+these four sequences and pass the resulting [CLS]
+representations through a fully-connected layer,
+which is used to predict the correct answer.
+We
+truncate question-answer pairs that are longer than
+128 tokens and, if needed, the passage so that the
+total length is at most 512 tokens.
+Results on the RACE test sets are presented in
+Table 7.
+RoBERTa achieves state-of-the-art results
+on both middle-school and high-school settings.
+6
+Related Work
+Pretraining
+Evaluation Setup
+In this section we evaluate
+our proposed methods on identifying summary-
+worthy instances including singletons and pairs.
+We compare this scheme with traditional methods
+extracting only singletons, then introduce novel
+evaluation strategies to compare results.
+We ex-
+ploit several strong extractive baselines: (i) Sum-
+Basic (Vanderwende et al., 2007) extracts sen-
+tences by assuming words occurring frequently
+in a document have higher chances of being in-
+cluded in the summary; (ii) KL-Sum (Haghighi
+and Vanderwende, 2009) greedily adds sentences
+to the summary to minimize KL divergence; (iii)
+LexRank (Erkan and Radev, 2004) estimates sen-
+tence importance based on eigenvector centrality
+in a document graph representation.
+Further, we
+include the LEAD method that selects the ﬁrst N
+sentences from each document.
+We then require
+all systems to extract N instances, i.e., either sin-
+gletons or pairs, from the input document(s).5
+We compare system-identiﬁed instances with
+ground-truth instances, and in particular, we com-
+pare against the primary, secondary, and full set of
+ground-truth sentences.
+A primary sentence is de-
+ﬁned as a ground-truth singleton or a sentence in
+a ground-truth pair that has the highest similarity
+to the reference summary sentence; the other sen-
+tence in the pair is considered secondary, which
+provides complementary information to the pri-
+mary sentence.
+E.g., let S∗={(1, 2), 5, (8, 4), 10}
+be a ground-truth set of instances, where numbers
+are sentence indices and the ﬁrst sentence of each
+pair is primary.
+Our ground-truth primary set thus
+contains {1, 5, 8, 10}; secondary set contains {2,
+4}; and the full set of ground-truth sentences con-
+tains {1, 2, 5, 8, 4, 10}.
+Assume S={(1, 2), 3, (4,
+10), 15} are system-selected instances.
+We uncol-
+lapse all pairs to obtain a set of single sentences
+S={1, 2, 3, 4, 10, 15}, then compare them against
+the primary, secondary, and full set of ground-truth
+sentences to calculate precision, recall, and F1-
+measure scores.
+This evaluation scheme allows
+a fair comparison of a variety of systems for in-
+stance selection, and assess their performance on
+identifying primary and secondary sentences re-
+spectively for summary generation.
+Extraction Results
+In Table 2 we present in-
+5 We use N=4/1/5 respectively for the CNN/DM, XSum,
+and DUC-04 datasets.
+N is selected as the average number of
+sentences in reference summaries.
+Primary
+Secondary
+All
+System
+P
+R
+F
+P
+R
+F
+P
+R
+F
+CNN/Daily Mail
+LEAD-Baseline
+31.9
+38.4
+34.9
+10.7
+34.3
+16.3
+39.9
+37.3
+38.6
+SumBasic (Vanderwende et al., 2007)
+15.2
+17.3
+16.2
+5.3
+15.8
+8.0
+19.6
+16.9
+18.1
+KL-Summ (Haghighi et al., 2009)
+15.7
+17.9
+16.7
+5.4
+15.9
+8.0
+20.0
+17.4
+18.6
+LexRank (Erkan and Radev, 2004)
+22.0
+25.9
+23.8
+7.2
+21.4
+10.7
+27.5
+24.7
+26.0
+VSM-SingOnly (This work)
+30.8
+36.9
+33.6
+9.8
+34.4
+15.2
+39.5
+35.7
+37.5
+VSM-SingPairMix (This work)
+27.0
+46.5
+34.2
+9.0
+42.1
+14.9
+34.0
+45.4
+38.9
+BERT-SingOnly (This work)
+35.3
+41.9
+38.3
+9.8
+32.5
+15.1
+44.0
+38.6
+41.1
+BERT-SingPairMix (This work)
+33.6
+67.1
+44.8
+13.6
+70.2
+22.8
+44.7
+68.0
+53.9
+XSum
+LEAD-Baseline
+8.5
+9.4
+8.9
+5.3
+9.5
+6.8
+13.8
+9.4
+11.2
+SumBasic (Vanderwende et al., 2007)
+8.7
+9.7
+9.2
+5.0
+8.9
+6.4
+13.7
+9.4
+11.1
+KL-Summ (Haghighi et al., 2009)
+9.2
+10.2
+9.7
+5.0
+8.9
+6.4
+14.2
+9.7
+11.5
+LexRank (Erkan and Radev, 2004)
+9.7
+10.8
+10.2
+5.5
+9.8
+7.0
+15.2
+10.4
+12.4
+VSM-SingOnly (This work)
+12.3
+14.1
+13.1
+3.8
+11.0
+5.6
+17.9
+12.0
+14.4
+VSM-SingPairMix (This work)
+10.1
+22.6
+13.9
+4.2
+17.4
+6.8
+14.3
+20.8
+17.0
+BERT-SingOnly (This work)
+24.2
+26.1
+25.1
+6.6
+16.7
+9.5
+35.3
+20.8
+26.2
+BERT-SingPairMix (This work)
+33.2
+56.0
+41.7
+24.1
+65.5
+35.2
+57.3
+59.6
+58.5
+DUC-04
+LEAD-Baseline
+6.0
+4.8
+5.3
+2.8
+3.8
+3.2
+8.8
+4.4
+5.9
+SumBasic (Vanderwende et al., 2007)
+4.2
+3.2
+3.6
+3.0
+3.8
+3.3
+7.2
+3.4
+4.6
+KL-Summ (Haghighi et al., 2009)
+5.6
+4.5
+5.0
+2.8
+3.8
+3.2
+8.0
+4.2
+5.5
+LexRank (Erkan and Radev, 2004)
+8.5
+6.7
+7.5
+4.8
+6.5
+5.5
+12.1
+6.6
+8.6
+VSM-SingOnly (This work)
+18.0
+14.7
+16.2
+3.6
+8.4
+5.0
+23.6
+11.8
+15.7
+VSM-SingPairMix (This work)
+3.8
+6.2
+4.7
+3.6
+11.4
+5.5
+7.4
+8.0
+7.7
+BERT-SingOnly (This work)
+8.4
+6.5
+7.4
+2.8
+5.3
+3.7
+15.6
+6.6
+9.2
+BERT-SingPairMix (This work)
+4.8
+9.1
+6.3
+4.2
+14.2
+6.5
+9.0
+10.9
+9.9
+Table 2: Instance selection results; evaluated for primary, secondary, and all ground-truth sentences.
+Our BERT-SingPairMix
+method achieves strong performance owing to its capability of building effective representations for both singletons and pairs.
+stance selection results for the CNN/DM, XSum,
+and DUC-04 datasets.
+Our method builds rep-
+resentations for instances using either BERT or
+VSM (§3.1).
+To ensure a thorough comparison,
+we experiment with selecting a mixed set of sin-
+gletons and pairs (“SingPairMix”) as well as se-
+lecting singletons only (“SingOnly”).
+On the
+CNN/DM and XSum datasets, we observe that se-
+lecting a mixed set of singletons and pairs based
+on BERT representations (BERT+SingPairMix)
+demonstrates the most competitive results.
+It out-
+performs a number of strong baselines when eval-
+uated on a full set of ground-truth sentences.
+The
+method also performs superiorly on identifying
+secondary sentences.
+For example, it increases
+recall scores for identifying secondary sentences
+from 33.8% to 69.8% (CNN/DM) and from 16.7%
+to 65.3% (XSum).
+Our method is able to achieve
+strong performance on instance selection owing to
+BERT’s capability of building effective represen-
+tations for both singletons and pairs.
+It learns to
+identify salient source content based on token and
+position embeddings and it encodes sentential se-
+mantic compatibility using the pretraining task of
+predicting the next sentence; both are valuable ad-
+ditions to summary instance selection.
+Further, we observe that identifying summary-
+worthy singletons and pairs from multi-document
+inputs (DUC-04) appears to be more challeng-
+ing than that of single-document inputs (XSum
+and CNN/DM).
+This distinction is not surprising
+given that for multi-document inputs, the system
+has a large and diverse search space where candi-
+date singletons and pairs are gathered from a set
+of documents written by different authors.6 We
+ﬁnd that the BERT model performs consistently on
+identifying secondary sentences, and VSM yields
+considerable performance gain on selecting pri-
+mary sentences.
+Both BERT and VSM models
+are trained on the CNN/DM dataset and applied to
+DUC-04 as the latter data are only used for testing.
+Our ﬁndings suggest that the TF-IDF features of
+the VSM model are effective for multi-document
+inputs, as important topic words are usually re-
+peated across documents and TF-IDF scores can
+reﬂect topical importance of words.
+This analysis
+further reveals that extending BERT to incorporate
+topical salience of words can be a valuable line of
+research for future work.
+6For the DUC-04 dataset, we select top K sentences from
+each document (K=5) and pool them as candidate singletons.
+Candidate pairs consist of arbitrary combinations of single-
+tons.
+For all datasets we perform downsampling to balance
+the number of positive and negative singletons (or pairs).
+CNN/Daily Mail
+System
+R-1
+R-2
+R-L
+SumBasic (Vanderwende et al., 2007)
+34.11
+11.13
+31.14
+KLSumm (Haghighi et al., 2009)
+29.92
+10.50
+27.37
+LexRank (Erkan and Radev, 2004)
+35.34
+13.31
+31.93
+PointerGen+Cov (See et al., 2017)
+39.53
+17.28
+36.38
+BERT-Abs w/ SS (This Work)
+35.49
+15.12
+33.03
+BERT-Abs w/ PG (This Work)
+37.15
+15.22
+34.60
+BERT-Extr (This Work)
+41.13
+18.68
+37.75
+GT-SingPairMix (This Work)
+48.73
+26.59
+45.29
+XSum
+System
+R-1
+R-2
+R-L
+SumBasic (Vanderwende et al., 2007)
+18.56
+2.91
+14.88
+KLSumm (Haghighi et al., 2009)
+16.73
+2.83
+13.53
+LexRank (Erkan and Radev, 2004)
+17.95
+3.00
+14.30
+BERT-Abs w/ PG (This Work)
+25.08
+6.48
+19.75
+BERT-Extr (This Work)
+23.53
+4.54
+17.23
+GT-SingPairMix (This Work)
+27.90
+7.31
+21.04
+DUC-04
+System
+R-1
+R-2
+R-SU4
+SumBasic (Vanderwende et al., 2007)
+29.48
+4.25
+8.64
+KLSumm (Haghighi et al., 2009)
+31.04
+6.03
+10.23
+LexRank (Erkan and Radev, 2004)
+34.44
+7.11
+11.19
+Extract+Rewrite (Song et al., 2018)
+28.90
+5.33
+8.76
+Opinosis (Ganesan et al., 2010)
+27.07
+5.03
+8.63
+BERT-Abs w/ PG (This Work)
+27.95
+4.13
+7.75
+BERT-Extr (This Work)
+30.49
+5.12
+9.05
+GT-SingPairMix (This Work)
+41.42
+13.67
+16.38
+Table 3: Summarization results on various datasets.
+Whether
+abstractive summaries (BERT-Abst) outperform its extrac-
+tive variant (BERT-Extr) appears to be related to the amount
+of sentence pairs selected by BERT-SingPairMix.
+Selecting
+more pairs than singletons seems to hurt the abstractor.
+Summarization Results
+We present summa-
+rization results in Table 3, where we assess both
+extractive and abstractive summaries generated by
+BERT-SingPairMix.
+We omit VSM results as they
+are not as competitive as BERT on instance selec-
+tion for the mixed set of singletons and pairs.
+The
+extractive summaries “BERT-Extr” are formed by
+concatenating selected singletons and pairs for
+each document, whereas “GT-SingPairMix” con-
+catenates ground-truth singletons and pairs; it pro-
+vides an upper bound for any system generating a
+set of singletons and pairs as the summary.
+To as-
+sure fair comparison, we limit all extractive sum-
+maries to contain up to 100 words (40 words for
+XSum) for ROUGE evaluation7, where R-1, R-2,
+R-L, and R-SU4 are variants used to measure the
+overlap of unigrams, bigrams, longest common
+subsequences, and skip bigrams (with a maximum
+distance of 4) between system and reference sum-
+maries (Lin, 2004).
+The abstractive summaries are
+generated from the same singletons and pairs used
+7w/ ROUGE options: -n 2 -m -2 4 -w 1.2 -c 95 -r 1000 -l 100
+CNN/DM
+Primary
+Primary
+Secondary
+XSum
+0.0
+0.2
+0.4
+0.6
+0.8
+1.0
+Sent Position (Singles)
+DUC-04
+0.0
+0.2
+0.4
+0.6
+0.8
+1.0
+Sent Position (Pairs)
+Figure 3: Position of ground-truth singletons and pairs in a
+document.
+The singletons of XSum can occur anywhere; the
+ﬁrst and second sentence of a pair also appear far apart.
+to form system extracts.
+“BERT-Abs-PG” gener-
+ates an abstract by iteratively encoding singletons
+or pairs and decoding summary sentences using
+pointer-generator networks (§3.2).8
+Our BERT summarization systems achieve re-
+sults largely on par with those of prior work.
+It
+is interesting to observe that the extractive vari-
+ant (BERT-Extr) can outperform its abstractive
+counterparts on DUC-04 and CNN/DM datasets,
+and vice versa on XSum.
+A close examina-
+tion of the results reveals that whether abstrac-
+tive summaries outperform appears to be related to
+the amount of sentence pairs selected by “BERT-
+SingPairMix.” Selecting more pairs than single-
+tons seems to hurt the abstractor.
+For example,
+BERT selects 100% and 76.90% sentence pairs for
+DUC-04 and CNN/DM respectively, and 28.02%
+for XSum.
+These results suggest that existing ab-
+stractors using encoder-decoder models may need
+to improve on sentence fusion.
+These models are
+trained to generate ﬂuent sentences more than pre-
+serving salient source content, leading to impor-
+tant content words being skipped in generating
+summary sentences.
+Our work intends to separate
+the tasks of sentence selection and summary gen-
+eration, thus holding promise for improving com-
+pression and merging in the future.
+We present
+example system summaries in the supplementary.
+Further analysis
+In this section we perform a
+series of analyses to understand where summary-
+worthy content is located in a document and how
+humans order them into a summary.
+Figure 3
+shows the position of ground-truth singletons and
+pairs in a document.
+We observe that singletons of
+CNN/DM and DUC-04 tend to occur at the begin-
+ning of a document, whereas singletons of XSum
+8We include an additional in-house system “BERT-Abs-
+SS” for CNN/DM that takes the same input but generates
+summary sentences using a tree-based decoder.
+CNN/DM
+DUC−04
+XSum
+1st
+2nd
+3rd
+4th
+5th
+1st
+2nd
+3rd
+4th
+5th
+1st
+2nd
+3rd
+4th
+5th
+0%
+20%
+40%
+60%
+80%
+100%
+Sentence in the Reference Summary
+InstanceType
+Compression
+Fusion
+Figure 4: A sentence’s position in a human summary can
+affect whether or not it is created by compression or fusion.
+can occur anywhere.
+We also ﬁnd that the ﬁrst and
+second sentence of a pair can appear far apart for
+XSum, but are closer for CNN/DM.
+These ﬁnd-
+ings suggest that selecting singletons and pairs for
+XSum can be more challenging than others, as in-
+dicated by the name “extreme” summarization.
+Figure 4 illustrates how humans choose to or-
+ganize content into a summary.
+Interestingly, we
+observe that a sentence’s position in a human sum-
+mary affects whether or not it is created by com-
+pression or fusion.
+The ﬁrst sentence of a human-
+written summary is more likely than the following
+sentences to be a fusion of multiple source sen-
+tences.
+This is the case across all three datasets.
+We conjecture that the ﬁrst sentence of a summary
+is expected to give an overview of the document
+and needs to consolidate information from differ-
+ent parts.
+Other sentences of a human summary
+can be generated by simply shortening singletons.
+Our statistics reveal that DUC-04 and XSum sum-
+maries involve more fusion operations, exhibiting
+a higher level of abstraction than CNN/DM.

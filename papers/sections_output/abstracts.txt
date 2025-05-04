@@ -1,0 +1,494 @@
+With the capability of modeling bidirectional contexts, denoising autoencoding based pretraining like BERT achieves better performance than pretraining approaches based on autoregressive language modeling. However, relying on corrupting the input with masks, BERT neglects dependency between the masked positions and suffers from a pretrain–finetune discrepancy. In light of these pros and cons, we propose XLNet, a generalized autoregressive pretraining method that (1) enables learning bidirectional contexts by maximizing the expected likelihood over all permutations of the factorization order and (2) overcomes the limitations of BERT thanks to its autoregressive formulation. Furthermore, XLNet integrates ideas from Transformer-XL, the state-of-the-art autoregressive model, into pretraining. Empirically, under comparable experiment settings, XLNet outperforms BERT on 20 tasks, often by a large margin, including question answering, natural language inference, sentiment analysis, and document ranking.
+The pre-training of text encoders normally processes text as a sequence of tokens corresponding to small text units, such as word pieces in English and characters in Chinese. It omits information carried by larger text granularity, and thus the encoders cannot easily adapt to certain combinations of characters. This leads to a loss of important semantic information, which is especially problematic for Chinese because the language does not have explicit word boundaries. In this paper, we propose ZEN, a BERT-based Chinese (Z) text encoder Enhanced by N-gram representations, where different combinations of characters are considered during training. As a result, potential word or phrase boundaries are explicitly pre-trained and fine-tuned with the character encoder (BERT). Therefore ZEN incorporates the comprehensive information of both the character sequence and words or phrases it contains. Experimental results illustrated the effectiveness of ZEN on a series of Chinese NLP tasks. We show that ZEN, using less resource than other published encoders, can achieve state-of-the-art performance on most tasks. Moreover, it is shown that reasonable performance can be obtained when ZEN is trained on a small corpus, which is important for applying pre-training techniques to scenarios with limited data. The code and pre-trained models of ZEN are available at https://github.com/sinovation/ZEN.
+We propose a new family of policy gradient methods for reinforcement learning, which alternate between sampling data through interaction with the environment, and optimizing a “surrogate” objective function using stochastic gradient ascent. Whereas standard policy gradient methods perform one gradient update per data sample, we propose a novel objective function that enables multiple epochs of minibatch updates. The new methods, which we call proximal policy optimization (PPO), have some of the benefits of trust region policy optimization (TRPO), but they are much simpler to implement, more general, and have better sample complexity (empirically). Our experiments test PPO on a collection of benchmark tasks, including simulated robotic locomotion and Atari game playing, and we show that PPO outperforms other online policy gradient methods, and overall strikes a favorable balance between sample complexity, simplicity, and wall-time.
+We adapt the ideas underlying the success of Deep Q-Learning to the continuous action domain. We present an actor-critic, model-free algorithm based on the deterministic policy gradient that can operate over continuous action spaces. Using the same learning algorithm, network architecture and hyper-parameters, our algorithm robustly solves more than 20 simulated physics tasks, including classic problems such as cartpole swing-up, dexterous manipulation, legged locomotion and car driving. Our algorithm is able to find policies whose performance is competitive with those found by a planning algorithm with full access to the dynamics of the domain and its derivatives. We further demonstrate that for many of the tasks the algorithm can learn policies “end-to-end”: directly from raw pixel inputs.
+We propose a technique for producing ‘visual explanations’ for decisions from a large class of Convolutional Neural Network (CNN)-based models, making them more transparent and explainable. Our approach – Gradient-weighted Class Activation Mapping (Grad-CAM) – uses the gradients of any target concept (say ‘dog’ in a classification network or a sequence of words in a captioning network) flowing into the final convolutional layer to produce a coarse localization map highlighting the important regions in the image for predicting the concept. Unlike previous approaches, Grad-CAM is applicable to a wide variety of CNN model-families: (1) CNNs with fully-connected layers (e.g. VGG), (2) CNNs used for structured outputs (e.g. captioning), (3) CNNs used in tasks with multimodal inputs (e.g. visual question answering) or reinforcement learning, all without architectural changes or re-training.
+We combine Grad-CAM with existing fine-grained visualizations to create a high-resolution class-discriminative visualization, Guided Grad-CAM, and apply it to image classification, image captioning, and visual question answering
+(VQA) models, including ResNet-based architectures.
+In the context of image classification models, our visualizations (a) lend insights into failure modes of these models
+(showing that seemingly unreasonable predictions have reasonable explanations), (b) outperform previous methods on
+the ILSVRC-15 weakly-supervised localization task, (c) are
+robust to adversarial perturbations, (d) are more faithful to the
+underlying model, and (e) help achieve model generalization
+by identifying dataset bias.
+For image captioning and VQA, our visualizations show that
+even non-attention based models learn to localize discriminative regions of input image.
+We devise a way to identify important neurons through GradCAM and combine it with neuron names [4] to provide textual explanations for model decisions. Finally, we design
+and conduct human studies to measure if Grad-CAM explanations help users establish appropriate trust in predictions from deep networks and show that Grad-CAM helps
+untrained users successfully discern a ‘stronger’ deep network from a ‘weaker’ one even when both make identical
+predictions.
+The best
+performing models also connect the encoder and decoder through an attention
+mechanism.
+We propose a new simple network architecture, the Transformer,
+based solely on attention mechanisms, dispensing with recurrence and convolutions
+entirely.
+Experiments on two machine translation tasks show these models to
+be superior in quality while being more parallelizable and requiring significantly
+less time to train.
+Our model achieves 28.4 BLEU on the WMT 2014 English-
+to-German translation task, improving over the existing best results, including
+ensembles, by over 2 BLEU.
+On the WMT 2014 English-to-French translation task,
+our model establishes a new single-model state-of-the-art BLEU score of 41.8 after
+training for 3.5 days on eight GPUs, a small fraction of the training costs of the
+best models from the literature.
+We show that the Transformer generalizes well to
+other tasks by applying it successfully to English constituency parsing both with
+large and limited training data.
+∗Equal contribution.
+Listing order is random.
+Jakob proposed replacing RNNs with self-attention and started
+the effort to evaluate this idea.
+Ashish, with Illia, designed and implemented the first Transformer models and
+has been crucially involved in every aspect of this work.
+Noam proposed scaled dot-product attention, multi-head
+attention and the parameter-free position representation and became the other person involved in nearly every
+detail.
+Niki designed, implemented, tuned and evaluated countless model variants in our original codebase and
+tensor2tensor.
+Llion also experimented with novel model variants, was responsible for our initial codebase, and
+efficient inference and visualizations.
+Lukasz and Aidan spent countless long days designing various parts of and
+implementing tensor2tensor, replacing our earlier codebase, greatly improving results and massively accelerating
+our research.
+This paper explores a simple and efﬁcient
+baseline for text classiﬁcation.
+Our ex-
+periments show that our fast text classi-
+ﬁer fastText is often on par with deep
+learning classiﬁers in terms of accuracy, and
+many orders of magnitude faster for training
+and evaluation.
+We can train fastText on
+more than one billion words in less than ten
+minutes using a standard multicore CPU, and
+classify half a million sentences among 312K
+classes in less than a minute.
+We present BART, a denoising autoencoder
+for pretraining sequence-to-sequence models.
+BART is trained by (1) corrupting text with an
+arbitrary noising function, and (2) learning a
+model to reconstruct the original text.
+It uses
+a standard Tranformer-based neural machine
+translation architecture which, despite its sim-
+plicity, can be seen as generalizing BERT (due
+to the bidirectional encoder), GPT (with the
+left-to-right decoder), and many other more re-
+cent pretraining schemes.
+We evaluate a num-
+ber of noising approaches, ﬁnding the best per-
+formance by both randomly shufﬂing the or-
+der of the original sentences and using a novel
+in-ﬁlling scheme, where spans of text are re-
+placed with a single mask token.
+BART is
+particularly effective when ﬁne tuned for text
+generation but also works well for compre-
+hension tasks.
+It matches the performance of
+RoBERTa with comparable training resources
+on GLUE and SQuAD, achieves new state-
+of-the-art results on a range of abstractive di-
+alogue, question answering, and summariza-
+tion tasks, with gains of up to 6 ROUGE.
+BART also provides a 1.1 BLEU increase over
+a back-translation system for machine transla-
+tion, with only target language pretraining.
+We
+also report ablation experiments that replicate
+other pretraining schemes within the BART
+framework, to better measure which factors
+most inﬂuence end-task performance.
+We introduce a new language representa-
+tion model called BERT, which stands for
+Bidirectional Encoder Representations from
+Transformers.
+Unlike recent language repre-
+sentation models (Peters et al., 2018a; Rad-
+ford et al., 2018), BERT is designed to pre-
+train deep bidirectional representations from
+unlabeled text by jointly conditioning on both
+left and right context in all layers.
+As a re-
+sult, the pre-trained BERT model can be ﬁne-
+tuned with just one additional output layer
+to create state-of-the-art models for a wide
+range of tasks, such as question answering and
+language inference, without substantial task-
+speciﬁc architecture modiﬁcations.
+BERT is conceptually simple and empirically
+powerful.
+It obtains new state-of-the-art re-
+sults on eleven natural language processing
+tasks, including pushing the GLUE score to
+80.5% (7.7% point absolute improvement),
+MultiNLI accuracy to 86.7% (4.6% absolute
+improvement), SQuAD v1.1 question answer-
+ing Test F1 to 93.2 (1.5 point absolute im-
+provement) and SQuAD v2.0 Test F1 to 83.1
+(5.1 point absolute improvement).
+Neural network-based methods for abstrac-
+tive summarization produce outputs that are
+more ﬂuent than other techniques, but perform
+poorly at content selection.
+This work pro-
+poses a simple technique for addressing this
+issue: use a data-efﬁcient content selector to
+over-determine phrases in a source document
+that should be part of the summary.
+We use
+this selector as a bottom-up attention step to
+constrain the model to likely phrases.
+We
+show that this approach improves the ability
+to compress text, while still generating ﬂuent
+summaries.
+This two-step process is both sim-
+pler and higher performing than other end-to-
+end content selection models, leading to sig-
+niﬁcant improvements on ROUGE for both the
+CNN-DM and NYT corpus.
+Furthermore, the
+content selector can be trained with as little as
+1,000 sentences, making it easy to transfer a
+trained summarizer to a new domain.
+This paper addresses the scalability challenge of architecture search by formulating
+the task in a differentiable manner.
+Unlike conventional approaches of applying evo-
+lution or reinforcement learning over a discrete and non-differentiable search space,
+our method is based on the continuous relaxation of the architecture representation,
+allowing efﬁcient search of the architecture using gradient descent.
+Extensive
+experiments on CIFAR-10, ImageNet, Penn Treebank and WikiText-2 show that
+our algorithm excels in discovering high-performance convolutional architectures
+for image classiﬁcation and recurrent architectures for language modeling, while
+being orders of magnitude faster than state-of-the-art non-differentiable techniques.
+Our implementation has been made publicly available to facilitate further research
+on efﬁcient architecture search algorithms.
+Spatial pyramid pooling module or encode-decoder structure
+are used in deep neural networks for semantic segmentation task.
+The
+former networks are able to encode multi-scale contextual information by
+probing the incoming features with ﬁlters or pooling operations at mul-
+tiple rates and multiple eﬀective ﬁelds-of-view, while the latter networks
+can capture sharper object boundaries by gradually recovering the spatial
+information.
+In this work, we propose to combine the advantages from
+both methods.
+Speciﬁcally, our proposed model, DeepLabv3+, extends
+DeepLabv3 by adding a simple yet eﬀective decoder module to reﬁne the
+segmentation results especially along object boundaries.
+We further ex-
+plore the Xception model and apply the depthwise separable convolution
+to both Atrous Spatial Pyramid Pooling and decoder modules, resulting
+in a faster and stronger encoder-decoder network.
+We demonstrate the ef-
+fectiveness of the proposed model on PASCAL VOC 2012 and Cityscapes
+datasets, achieving the test set performance of 89.0% and 82.1% without
+any post-processing.
+Our paper is accompanied with a publicly available
+reference implementation of the proposed models in Tensorﬂow at https:
+//github.com/tensorflow/models/tree/master/research/deeplab.
+Keywords: Semantic image segmentation, spatial pyramid pooling, encoder-
+decoder, and depthwise separable convolution.
+We show that generating English Wikipedia articles can be approached as a multi-
+document summarization of source documents.
+We use extractive summarization
+to coarsely identify salient information and a neural abstractive model to generate
+the article.
+For the abstractive model, we introduce a decoder-only architecture
+that can scalably attend to very long sequences, much longer than typical encoder-
+decoder architectures used in sequence transduction.
+We show that this model can
+generate ﬂuent, coherent multi-sentence paragraphs and even whole Wikipedia
+articles.
+When given reference documents, we show it can extract relevant factual
+information as reﬂected in perplexity, ROUGE scores and human evaluations.
+We propose a novel parameter sharing method
+for Transformers (Vaswani et al., 2017).
+The
+proposed approach relaxes a widely used tech-
+nique, which shares the parameters of one layer
+with all layers such as Universal Transform-
+ers (Dehghani et al., 2019), to improve the
+efficiency.
+We propose three strategies: SE-
+QUENCE, CYCLE, and CYCLE (REV) to assign
+parameters to each layer.
+Experimental results
+show that the proposed strategies are efficient
+in terms of the parameter size and computa-
+tional time in the machine translation task.
+We
+also demonstrate that the proposed strategies
+are effective in the configuration where we use
+many training data such as the recent WMT
+competition.
+Moreover, we indicate that the
+proposed strategies are also more efficient than
+the previous approach (Dehghani et al., 2019)
+on automatic speech recognition and language
+modeling tasks.
+This paper shows that masked autoencoders (MAE) are
+scalable self-supervised learners for computer vision.
+Our
+MAE approach is simple: we mask random patches of the
+input image and reconstruct the missing pixels.
+It is based
+on two core designs.
+First, we develop an asymmetric
+encoder-decoder architecture, with an encoder that oper-
+ates only on the visible subset of patches (without mask to-
+kens), along with a lightweight decoder that reconstructs
+the original image from the latent representation and mask
+tokens.
+Second, we ﬁnd that masking a high proportion
+of the input image, e.g., 75%, yields a nontrivial and
+meaningful self-supervisory task.
+Coupling these two de-
+signs enables us to train large models efﬁciently and ef-
+fectively: we accelerate training (by 3× or more) and im-
+prove accuracy.
+Our scalable approach allows for learning
+high-capacity models that generalize well: e.g., a vanilla
+ViT-Huge model achieves the best accuracy (87.8%) among
+methods that use only ImageNet-1K data.
+Transfer per-
+formance in downstream tasks outperforms supervised pre-
+training and shows promising scaling behavior.
+Neural machine translation is a recently proposed approach to machine transla-
+tion.
+Unlike the traditional statistical machine translation, the neural machine
+translation aims at building a single neural network that can be jointly tuned to
+maximize the translation performance.
+The models proposed recently for neu-
+ral machine translation often belong to a family of encoder–decoders and encode
+a source sentence into a ﬁxed-length vector from which a decoder generates a
+translation.
+In this paper, we conjecture that the use of a ﬁxed-length vector is a
+bottleneck in improving the performance of this basic encoder–decoder architec-
+ture, and propose to extend this by allowing a model to automatically (soft-)search
+for parts of a source sentence that are relevant to predicting a target word, without
+having to form these parts as a hard segment explicitly.
+With this new approach,
+we achieve a translation performance comparable to the existing state-of-the-art
+phrase-based system on the task of English-to-French translation.
+Furthermore,
+qualitative analysis reveals that the (soft-)alignments found by the model agree
+well with our intuition.
+Fine-tuning is the de facto way to leverage
+large pretrained language models to perform
+downstream tasks.
+However, it modiﬁes all
+the language model parameters and therefore
+necessitates storing a full copy for each task.
+In this paper, we propose preﬁx-tuning, a
+lightweight alternative to ﬁne-tuning for nat-
+ural language generation tasks, which keeps
+language model parameters frozen, but opti-
+mizes a small continuous task-speciﬁc vector
+(called the preﬁx).
+Preﬁx-tuning draws inspira-
+tion from prompting, allowing subsequent to-
+kens to attend to this preﬁx as if it were “vir-
+tual tokens”.
+We apply preﬁx-tuning to GPT-2
+for table-to-text generation and to BART for
+summarization.
+We ﬁnd that by learning only
+0.1% of the parameters, preﬁx-tuning obtains
+comparable performance in the full data set-
+ting, outperforms ﬁne-tuning in low-data set-
+tings, and extrapolates better to examples with
+topics unseen during training.
+Artiﬁcial intelligence (AI) has undergone a renaissance recently, making major progress in
+key domains such as vision, language, control, and decision-making.
+This has been due, in
+part, to cheap data and cheap compute resources, which have ﬁt the natural strengths of deep
+learning.
+However, many deﬁning characteristics of human intelligence, which developed under
+much diﬀerent pressures, remain out of reach for current approaches.
+In particular, generalizing
+beyond one’s experiences—a hallmark of human intelligence from infancy—remains a formidable
+challenge for modern AI.
+The following is part position paper, part review, and part uniﬁcation.
+We argue that
+combinatorial generalization must be a top priority for AI to achieve human-like abilities, and that
+structured representations and computations are key to realizing this objective.
+Just as biology
+uses nature and nurture cooperatively, we reject the false choice between “hand-engineering”
+and “end-to-end” learning, and instead advocate for an approach which beneﬁts from their
+complementary strengths.
+We explore how using relational inductive biases within deep learning
+architectures can facilitate learning about entities, relations, and rules for composing them.
+We
+present a new building block for the AI toolkit with a strong relational inductive bias—the graph
+network—which generalizes and extends various approaches for neural networks that operate
+on graphs, and provides a straightforward interface for manipulating structured knowledge and
+producing structured behaviors.
+We discuss how graph networks can support relational reasoning
+and combinatorial generalization, laying the foundation for more sophisticated, interpretable,
+and ﬂexible patterns of reasoning.
+As a companion to this paper, we have also released an
+open-source software library for building graph networks, with demonstrations of how to use
+them in practice.
+This paper shows how Long Short-term Memory recurrent neural net-
+works can be used to generate complex sequences with long-range struc-
+ture, simply by predicting one data point at a time.
+The approach is
+demonstrated for text (where the data are discrete) and online handwrit-
+ing (where the data are real-valued).
+It is then extended to handwriting
+synthesis by allowing the network to condition its predictions on a text
+sequence.
+The resulting system is able to generate highly realistic cursive
+handwriting in a wide variety of styles.
+Language model pretraining has led to sig-
+niﬁcant performance gains but careful com-
+parison between different approaches is chal-
+lenging.
+Training is computationally expen-
+sive, often done on private datasets of different
+sizes, and, as we will show, hyperparameter
+choices have signiﬁcant impact on the ﬁnal re-
+sults.
+We present a replication study of BERT
+pretraining (Devlin et al., 2019) that carefully
+measures the impact of many key hyperparam-
+eters and training data size.
+We ﬁnd that BERT
+was signiﬁcantly undertrained, and can match
+or exceed the performance of every model
+published after it.
+Our best model achieves
+state-of-the-art results on GLUE, RACE and
+SQuAD.
+These results highlight the impor-
+tance of previously overlooked design choices,
+and raise questions about the source of re-
+cently reported improvements.
+We release our
+models and code.1
+When writing a summary, humans tend to
+choose content from one or two sentences and
+merge them into a single summary sentence.
+However, the mechanisms behind the selec-
+tion of one or multiple source sentences remain
+poorly understood.
+Sentence fusion assumes
+multi-sentence input; yet sentence selection
+methods only work with single sentences and
+not combinations of them.
+There is thus a cru-
+cial gap between sentence selection and fusion
+to support summarizing by both compressing
+single sentences and fusing pairs.
+This pa-
+per attempts to bridge the gap by ranking sen-
+tence singletons and pairs together in a uni-
+ﬁed space.
+Our proposed framework attempts
+to model human methodology by selecting ei-
+ther a single sentence or a pair of sentences,
+then compressing or fusing the sentence(s) to
+produce a summary sentence.
+We conduct ex-
+tensive experiments on both single- and multi-
+document summarization datasets and report
+ﬁndings on sentence selection and abstraction.
+We present two approaches that use unlabeled data to improve sequence learning
+with recurrent networks.
+The ﬁrst approach is to predict what comes next in a
+sequence, which is a conventional language model in natural language processing.
+The second approach is to use a sequence autoencoder, which reads the input se-
+quence into a vector and predicts the input sequence again.
+These two algorithms
+can be used as a “pretraining” step for a later supervised sequence learning algo-
+rithm.
+In other words, the parameters obtained from the unsupervised step can be
+used as a starting point for other supervised training models.
+In our experiments,
+we ﬁnd that long short term memory recurrent networks after being pretrained
+with the two approaches are more stable and generalize better.
+With pretraining,
+we are able to train long short term memory recurrent networks up to a few hun-
+dred timesteps, thereby achieving strong performance in many text classiﬁcation
+tasks, such as IMDB, DBpedia and 20 Newsgroups.
+Recent work has demonstrated that deep neural networks are vulnerable to adversarial
+examples—inputs that are almost indistinguishable from natural data and yet classiﬁed incor-
+rectly by the network.
+In fact, some of the latest ﬁndings suggest that the existence of adversarial
+attacks may be an inherent weakness of deep learning models.
+To address this problem, we
+study the adversarial robustness of neural networks through the lens of robust optimization.
+This approach provides us with a broad and unifying view on much of the prior work on this
+topic.
+Its principled nature also enables us to identify methods for both training and attacking
+neural networks that are reliable and, in a certain sense, universal.
+In particular, they specify
+a concrete security guarantee that would protect against any adversary.
+These methods let us
+train networks with signiﬁcantly improved resistance to a wide range of adversarial attacks.
+They also suggest the notion of security against a ﬁrst-order adversary as a natural and broad
+security guarantee.
+We believe that robustness against such well-deﬁned classes of adversaries
+is an important stepping stone towards fully resistant deep learning models.
+1
+Generalized linear models with nonlinear feature transfor-
+mations are widely used for large-scale regression and clas-
+siﬁcation problems with sparse inputs.
+Memorization of fea-
+ture interactions through a wide set of cross-product feature
+transformations are eﬀective and interpretable, while gener-
+alization requires more feature engineering eﬀort.
+With less
+feature engineering, deep neural networks can generalize bet-
+ter to unseen feature combinations through low-dimensional
+dense embeddings learned for the sparse features.
+However,
+deep neural networks with embeddings can over-generalize
+and recommend less relevant items when the user-item inter-
+actions are sparse and high-rank.
+In this paper, we present
+Wide & Deep learning—jointly trained wide linear models
+and deep neural networks—to combine the beneﬁts of mem-
+orization and generalization for recommender systems.
+We
+productionized and evaluated the system on Google Play,
+a commercial mobile app store with over one billion active
+users and over one million apps.
+Online experiment results
+show that Wide & Deep signiﬁcantly increased app acquisi-
+tions compared with wide-only and deep-only models.
+We
+have also open-sourced our implementation in TensorFlow.
+CCS Concepts
+•Computing methodologies →Machine learning; Neu-
+ral networks; Supervised learning; •Information systems
+→Recommender systems;
+Keywords
+Wide & Deep Learning, Recommender Systems.
+We present an interpretation of Inception modules in con-
+volutional neural networks as being an intermediate step
+in-between regular convolution and the depthwise separable
+convolution operation (a depthwise convolution followed by
+a pointwise convolution).
+In this light, a depthwise separable
+convolution can be understood as an Inception module with
+a maximally large number of towers.
+This observation leads
+us to propose a novel deep convolutional neural network
+architecture inspired by Inception, where Inception modules
+have been replaced with depthwise separable convolutions.
+We show that this architecture, dubbed Xception, slightly
+outperforms Inception V3 on the ImageNet dataset (which
+Inception V3 was designed for), and signiﬁcantly outper-
+forms Inception V3 on a larger image classiﬁcation dataset
+comprising 350 million images and 17,000 classes.
+Since
+the Xception architecture has the same number of param-
+eters as Inception V3, the performance gains are not due
+to increased capacity but rather to a more efﬁcient use of
+model parameters.

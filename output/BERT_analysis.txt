@@ -1,0 +1,832 @@
+Gemini Advanced
+
+2.5 Pro (experimental)
+
+
+
+
+Conversation with Gemini
+
+BERT
+PDF
+
+BERT_analysis
+JSON
+
+paper_analyzer
+PY
+so here is my code and the analysis it makes , i am not necessarily happy with the summarization, could you please either fix my code or rewrite it so it can do the following Overview
+
+This is a machine learning pipeline that processes academic papers (PDFs) using the SciDeBERTa-CS model to classify paper sections, summarize content, and generate quiz questions. It's designed to automatically extract and analyze scientific papers.
+
+Libraries Used and Their Purpose
+
+Core Libraries
+
+
+
+fitz (PyMuPDF): PDF processing - extracts text from PDF files
+
+nltk: Natural Language Processing - sentence tokenization, text processing
+
+torch: PyTorch - deep learning framework for running SciDeBERTa model
+
+transformers: Hugging Face library for pre-trained models (SciDeBERTa-CS, PEGASUS, RoBERTa)
+
+sklearn: Machine learning utilities for TF-IDF vectorization and similarity calculations
+
+numpy: Numerical operations
+
+json: JSON file handling
+
+logging: Error and info logging
+
+pathlib: File path handling
+
+argparse: Command-line argument parsing
+
+
+
+Main Classes and Their Functions
+
+1. PDFProcessor
+
+Handles PDF file reading and text extraction.
+
+Methods:
+
+
+
+extract_text_from_pdf(): Opens PDF, extracts text page by page, returns full text and page-wise text dictionary
+
+
+
+2. SciDeBERTaSegmenter
+
+The core component that classifies paper sections using the SciDeBERTa-CS model.
+
+Methods:
+
+
+
+__init__(): Loads the SciDeBERTa-CS model and tokenizer, sets up section patterns
+
+classify_paragraph(): Uses SciDeBERTa-CS to classify a paragraph into one of: abstract, introduction, methods, results, discussion, conclusion
+
+extract_sections_with_scideberta(): Main ML-based section extraction:
+
+
+
+Splits text into paragraphs
+
+Classifies each paragraph using SciDeBERTa
+
+Groups consecutive paragraphs of the same type
+
+Creates PaperSection objects with confidence scores
+
+
+
+
+
+extract_sections_with_regex(): Fallback method using regex patterns when SciDeBERTa fails
+
+extract_sections(): Main method combining both approaches
+
+_find_page_range(): Determines which pages contain specific content
+
+
+
+3. Summarizer
+
+Creates summaries using the PEGASUS-pubmed model.
+
+Methods:
+
+
+
+__init__(): Loads the PEGASUS model for summarization
+
+summarize_section(): Summarizes long text by chunking and merging summaries
+
+create_paper_summary(): Generates comprehensive summary including abstract, methods, results, conclusion
+
+_extract_key_concepts(): Uses TF-IDF to extract important terms from the paper
+
+
+
+4. QAGenerator
+
+Generates quiz questions from paper content.
+
+Methods:
+
+
+
+__init__(): Sets up models for question generation
+
+generate_quiz(): Creates quiz questions:
+
+
+
+Prioritizes sections by importance
+
+Extracts important sentences using TF-IDF
+
+Generates questions from those sentences
+
+
+
+
+
+_prioritize_sections(): Ranks sections by importance (results > abstract > conclusion, etc.)
+
+_create_smart_question(): Creates context-aware questions based on section type
+
+
+
+5. PaperAnalysisPipeline
+
+Main orchestrator that ties everything together.
+
+Methods:
+
+
+
+__init__(): Initializes all components
+
+process_paper(): Main processing method:
+
+
+
+Extracts text from PDF
+
+Segments into sections using SciDeBERTa
+
+Summarizes each section
+
+Generates quiz questions
+
+Saves results to JSON
+
+
+
+
+
+_extract_title(): Attempts to extract paper title from text
+
+
+
+Data Classes
+
+PaperSection
+
+Stores information about each section:
+
+
+
+title: Section title
+
+content: Section text content
+
+section_type: Category (abstract, methods, etc.)
+
+start_page/end_page: Page range
+
+confidence: Classification confidence score
+
+
+
+PaperSummary
+
+Stores the complete paper summary:
+
+
+
+Section-wise summaries
+
+Full summary text
+
+Key concepts list
+
+
+
+How the Pipeline Works
+
+
+
+PDF Ingestion: PyMuPDF extracts raw text from each page
+
+Section Classification:
+
+
+
+SciDeBERTa-CS (a scientific text classifier) analyzes each paragraph
+
+Assigns section types (abstract, methods, results, etc.)
+
+Uses confidence scores to assess classification quality
+
+Falls back to regex patterns if needed
+
+
+
+
+
+Summarization:
+
+
+
+PEGASUS-pubmed model (trained on biomedical texts) summarizes each section
+
+Handles long text by chunking
+
+Creates a unified paper summary
+
+
+
+
+
+Question Generation:
+
+
+
+Identifies important sentences using TF-IDF
+
+Generates context-aware questions based on section type
+
+Prioritizes results and abstract sections
+
+
+
+
+
+Output: Saves structured JSON with:
+
+
+
+Section-wise classified content
+
+Summaries at multiple levels
+
+Key concepts
+
+Quiz questions
+
+
+
+
+
+
+
+Usage Example
+
+python# Initialize and run
+
+pipeline = PaperAnalysisPipeline(output_dir="output")
+
+results = pipeline.process_paper("your_paper.pdf")
+
+
+
+# Access results
+
+print(results["paper_title"])
+
+print(results["summary"]["key_concepts"])
+
+The system is designed to automate the tedious process of reading and analyzing academic papers, providing structured summaries and educational content automatically. you dont have to use sciberta scibert is fine the most important part is the main functionality of the program
+
+
+
+
+Show thinking
+Okay, I can help refine the summarization capabilities of your Python script.
+
+Looking at your code and the example analysis (BERT_analysis.json), the current summarization approach uses facebook/bart-large-cnn, which is a good general model but might not be the best for the nuances of scientific papers. Also, the method for generating the full paper summary by concatenating section summaries can be improved for better coherence.
+
+I'll modify the paper_analyzer.py script to:
+
+Use a summarization model potentially better suited for scientific text (google/pegasus-pubmed).
+Implement a more robust text chunking strategy for the summarizer to handle longer sections without losing too much context, respecting the model's input limits.
+Generate the full paper summary by summarizing the combined content of key sections (Abstract, Introduction, Results, Conclusion) rather than just concatenating individual summaries.
+Slightly enhance the significance generation by using more context (Abstract, Introduction, Conclusion).
+Here is the updated code. I've focused on modifying the PaperProcessor class, particularly the model loading and summarization-related methods.
+Updated Paper Analyzer Script
+May 3, 10:02 p.m.
+
+Key Changes:
+
+Summarization Model: Changed the default summarizer_model to google/pegasus-pubmed. I also explicitly used PegasusTokenizer and PegasusForConditionalGeneration.
+Text Chunking (summarize_text):
+Checks if the input text fits the model's maximum length (self.summarizer_max_input_length).
+If it fits, it summarizes directly using beam search (num_beams=4) and other parameters (length_penalty, no_repeat_ngram_size) for potentially better quality.
+If it's too long, it splits the text into sentences using nltk.sent_tokenize.
+It groups sentences into chunks, ensuring the token count of each chunk (using the summarizer's tokenizer) stays below the model's limit.
+It summarizes each chunk individually.
+It then performs hierarchical summarization: the summaries of the chunks are concatenated and summarized again to produce the final output, aiming for better overall coherence than just joining chunk summaries.
+Full Paper Summary (generate_full_summary): Instead of concatenating section summaries, this function now concatenates the original content of the Abstract, Introduction, Results, and Conclusion sections and then calls summarize_text on this combined text.
+Significance Generation (generate_significance): This function now uses the content from the Abstract, Introduction, and Conclusion sections as input to the summarize_text function to generate a concise significance statement.
+Metadata & Section Extraction: Added minor improvements and robustness checks to metadata extraction (title, authors, year, DOI) and section identification (using re.finditer, slightly improved patterns, better page number estimation, ML refinement logic).
+Error Handling & Logging: Added more specific error handling (e.g., for model loading, file I/O) and more detailed logging messages, including a --debug flag.
+Data Classes: Updated PaperAnalysis to store section summaries separately and renamed summary to full_summary for clarity. Added encoding specification when saving JSON.
+Model Loading: Added try-except blocks around model loading.
+Evaluation Mode: Set models to .eval() mode after loading.
+This revised script should provide more relevant and coherent summaries for academic papers. Remember that summarization quality can still vary depending on the paper's complexity and writing style. You might need to experiment with different summarization models (allenai/led-large-16384-arxiv is another good option for long scientific text) or tweak the summarization parameters (num_beams, length_penalty, etc.) further.
+
+
+Sources and related content
+BERT
+
+PDF
+BERT_analysis
+
+JSON
+paper_analyzer
+
+PY
+
+
+
+
+
+BERT_analysis
+JSON
+here is the analysis it provided , i think it does look better but what i want is this When you need a concise, high‐value summary of an ML paper, you don’t have to read every detail top‐to‐bottom—instead, focus on these core sections:
+
+
+
+Abstract
+
+This is the authors’ own “elevator pitch.” You’ll get the problem statement, their approach, and headline results in a few sentences.
+
+Introduction
+
+Zero in on the first 1–2 paragraphs for motivation (“Why this problem matters”), then the bit near the end where they bulleted their contributions. That gives you context and exactly what they claim is new.
+
+Results / Experiments
+
+Scan the main tables and figures (and the surrounding captions/text) to see how big their gains are, on which tasks, and under what settings. This tells you whether the method actually delivers.
+
+Discussion (or “Analysis”)
+
+If they have a section interpreting why their approach works (e.g. ablations, error analyses), grab the key takeaways—this often lives right after the main results.
+
+Conclusion & Future Work
+
+One last check: what do they believe the impact is, and what open questions remain? That rounds out your summary with both achievements and limitations.
+
+Optional deep‐dive
+
+
+
+Methodology: Only if your summary needs to convey how the model works at a high level (e.g. “they add a two‐stream self‐attention head to Transformer-XL”).
+
+Related Work: Rarely essential unless you need to position this paper among close alternatives.
+
+Putting it together:
+
+
+
+A 5‐sentence summary might look like:
+
+“This paper tackles X by extending Y with Z (Abstract/Intro). They train on datasets A, B and compare against baselines C, D, showing +X% on task T (Results). Ablation studies reveal that component Z contributes the most, and analysis suggests the model is more robust to condition Q (Discussion). They conclude that this approach opens doors to application R, but note limitations in scenario S (Conclusion).” make it longer than 5 sentences anywhere from 7-10
+
+
+
+
+Show thinking
+Okay, I understand. You want to refine the generate_full_summary function in the Canvas script to produce a more structured and slightly longer summary (7-10 sentences). This summary should synthesize the core information from the Abstract, Introduction, Results, Discussion, and Conclusion sections, following the flow you described.
+
+I will modify the generate_full_summary method in the PaperProcessor class to achieve this. Instead of just summarizing the raw concatenated text of a few sections, it will now:
+
+Gather the existing summaries generated for the Abstract, Introduction, Results, Discussion, and Conclusion.
+Combine these summaries into a single text block, potentially adding section markers (like "Introduction:", "Results:", etc.) to guide the final summarization step.
+Call the summarize_text function on this combined block of summaries, instructing it to generate a final summary of 7-10 sentences (adjusting min_length and max_length accordingly).
+This approach aims to create a synthesized overview based on the key points already extracted from each critical section.
+
+Here's the updated code in the Canvas:
+
+Summary of Changes:
+
+Renamed generate_full_summary to generate_structured_full_summary: This clarifies its new purpose.
+Input: The function now takes the section_summaries dictionary (which is generated earlier in generate_summaries) as input, instead of the raw sections dictionary.
+Logic:
+It gathers the available summaries for Abstract, Introduction, Methods, Results, Discussion, and Conclusion.
+It combines these summaries into a single string, potentially with markers like "Abstract:", "Introduction:", etc.
+It calls self.summarize_text on this combined string.
+Crucially, it sets min_length and max_length in this final call to target a 7-10 sentence output (approximated by token counts, e.g., min_length=80, max_length=200).
+Added post-processing to count the sentences in the generated summary and log a warning or truncate if it falls outside the 7-10 sentence range.
+Integration: The main generate_summaries function was updated to call generate_structured_full_summary correctly and store its output in the summaries["full"] key. The process_paper function remains the same as it already retrieves the "full" summary correctly.
+This modification should produce a full_summary in your output JSON that better reflects the structured, multi-section overview you described, aiming for that 7-10 sentence length.
+
+
+Sources and related content
+BERT
+
+PDF
+paper_analyzer
+
+PY
+BERT_analysis
+
+JSON
+
+
+
+
+"sections" is not defined
+
+
+
+Show thinking
+Okay, I see the issue. The error NameError: name 'sections' is not defined happens in the extract_metadata function because it tries to use the sections variable (specifically when determining the search_area for authors) but doesn't receive it as an argument.
+
+The sections dictionary is created by identify_sections and is needed later by extract_metadata.
+
+I'll fix this by:
+
+Modifying the extract_metadata function signature to accept sections as an argument.
+Updating the call to extract_metadata within the process_paper method to pass the sections dictionary.
+Adjusting the logic within extract_metadata's author extraction to correctly use the passed sections information to define the search area, falling back to the first page text if necessary sections aren't found.
+Here is the corrected code block within the Canvas:
+
+Summary of Fixes:
+
+extract_metadata Signature: Changed from extract_metadata(self, full_text: str, pages_data: List[Dict]) to extract_metadata(self, full_text: str, pages_data: List[Dict], sections: Dict[str, PaperSection]).
+process_paper Call: Updated the line calling extract_metadata to: metadata = self.extract_metadata(full_text, pages_data, sections)
+Author Extraction Logic: Modified the author extraction part within extract_metadata to search the lines between the end of the identified title and the start of the Abstract/Introduction section (or a line limit), rather than trying to access sections directly by string keys without it being passed. It now determines the search lines based on the title_end_line_index.
+Datetime Import: Added import datetime within the if __name__ == "__main__": block and handled potential ImportError for datetime more gracefully in the main try-except block, as it's used for year validation.
+These changes should resolve the NameError and allow the metadata extraction, particularly author identification, to proceed correctly using the identified section boundaries where appropriate.
+
+
+Sources and related content
+BERT
+
+PDF
+paper_analyzer
+
+PY
+BERT_analysis
+
+JSON
+
+
+
+
+(venv) PS C:\LabGit\Scientific-paper-assistant-AI> python paper_analyzer.py "C:\LabGit\Scientific-paper-assistant-AI\papers\BERT.pdf"
+
+2025-05-03 22:40:16,853 - __main__ - INFO - Using device: cuda
+
+2025-05-03 22:40:16,853 - __main__ - INFO - Loading NLP models...
+
+2025-05-03 22:40:18,052 - __main__ - INFO - Loading section classifier with num_labels=6
+
+Some weights of BertForSequenceClassification were not initialized from the model checkpoint at allenai/scibert_scivocab_uncased and are newly initialized: ['classifier.bias', 'classifier.weight']
+
+You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
+
+Some weights of PegasusForConditionalGeneration were not initialized from the model checkpoint at google/pegasus-pubmed and are newly initialized: ['model.decoder.embed_positions.weight', 'model.encoder.embed_positions.weight']
+
+You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
+
+2025-05-03 22:40:25,130 - sentence_transformers.SentenceTransformer - INFO - Use pytorch device_name: cuda:0
+
+2025-05-03 22:40:25,130 - sentence_transformers.SentenceTransformer - INFO - Load pretrained SentenceTransformer: allenai/specter
+
+2025-05-03 22:40:25,340 - sentence_transformers.SentenceTransformer - WARNING - No sentence-transformers model found with name allenai/specter. Creating a new one with mean pooling.
+
+2025-05-03 22:40:27,250 - __main__ - INFO - All models loaded successfully
+
+2025-05-03 22:40:27,251 - __main__ - INFO - Processing paper: C:\LabGit\Scientific-paper-assistant-AI\papers\BERT.pdf
+
+2025-05-03 22:40:27,251 - __main__ - INFO - Starting processing for paper: C:\LabGit\Scientific-paper-assistant-AI\papers\BERT.pdf
+
+2025-05-03 22:40:27,251 - __main__ - INFO - Extracting text from C:\LabGit\Scientific-paper-assistant-AI\papers\BERT.pdf
+
+2025-05-03 22:40:27,252 - __main__ - INFO - PDF has 16 pages.
+
+2025-05-03 22:40:27,571 - __main__ - INFO - Successfully extracted text (approx 64453 chars).
+
+2025-05-03 22:40:27,572 - __main__ - INFO - Identifying paper sections...
+
+2025-05-03 22:40:27,579 - __main__ - INFO - Refining section classification with ML model...
+
+2025-05-03 22:40:27,579 - __main__ - INFO - Identified sections: []
+
+2025-05-03 22:40:27,579 - __main__ - INFO - Extracting metadata...
+
+2025-05-03 22:40:27,580 - __main__ - WARNING - Could not confidently extract title using heuristics.
+
+2025-05-03 22:40:27,580 - __main__ - INFO - Extracted Authors (heuristic): []
+
+2025-05-03 22:40:27,581 - __main__ - INFO - Extracted Year: 2018
+
+2025-05-03 22:40:27,584 - __main__ - WARNING - Could not extract DOI.
+
+2025-05-03 22:40:27,585 - __main__ - INFO - Extracting key concepts and keywords...
+
+2025-05-03 22:40:27,585 - __main__ - WARNING - No substantial text found in core sections for keyword extraction.
+
+2025-05-03 22:40:27,585 - __main__ - INFO - Generating summaries...
+
+2025-05-03 22:40:27,585 - __main__ - INFO - Generating structured full summary from section summaries...
+
+2025-05-03 22:40:27,585 - __main__ - WARNING - No section summaries available for structured full summary.
+
+2025-05-03 22:40:27,585 - __main__ - INFO - Generating significance statement...
+
+2025-05-03 22:40:27,585 - __main__ - WARNING - No content from Abstract, Introduction, or Conclusion for significance.
+
+2025-05-03 22:40:27,585 - __main__ - INFO - Summarization complete.
+
+2025-05-03 22:40:27,585 - __main__ - INFO - Finished processing paper: C:\LabGit\Scientific-paper-assistant-AI\papers\BERT.pdf
+
+2025-05-03 22:40:27,586 - __main__ - INFO - Attempting to save analysis to: C:\LabGit\Scientific-paper-assistant-AI\papers\BERT_analysis.json
+
+
+
+Analysis complete. Results saved to: C:\LabGit\Scientific-paper-assistant-AI\papers\BERT_analysis.json
+
+
+
+=== Paper Analysis Quick Look ===
+
+Title: N/A
+
+Authors: N/A
+
+Year: 2018
+
+DOI: N/A
+
+
+
+Structured Full Summary (7-10 sentences):
+
+Could not generate structured summary: Missing section summaries.
+
+
+
+Significance Statement:
+
+Could not determine significance: Missing key sections.
+
+
+
+Keywords:
+
+None extracted
+
+
+
+Full analysis details saved in: C:\LabGit\Scientific-paper-assistant-AI\papers\BERT_analysis.json
+
+
+
+Abstract Heuristic Robustness
+Okay, it looks like the script ran but failed to identify any core sections (Abstract, Introduction, Results, Conclusion) in the BERT PDF. This cascaded into failures in keyword extraction, summarization, and significance generation, as they all depend on having section content. The metadata extraction also struggled, only finding the year.
+
+The most likely reason for the section identification failure is that the regular expressions defined in SECTION_PATTERNS or the filtering logic applied to the matches in the identify_sections function are not correctly capturing the headers as they appear in the BERT.pdf file. Headers might have slightly different formatting (like numbering 1 Introduction, 4.1 GLUE), unexpected line breaks, or surrounding text that interferes with the patterns.
+
+Let's try refining the identify_sections function to be more robust:
+
+Adjust Regex Patterns: Make patterns slightly more flexible (e.g., handle potential variations in numbering or spacing). Remove the beginning-of-line anchor (^) to allow matches that might be slightly indented, but keep the multiline flag.
+Relax Filtering: Remove the strict line length filtering (len(line.split()) < 10 and len(line) < 100) which might be discarding valid headers.
+Log Matches: Add debug logging to see exactly what the regex is matching before any filtering occurs.
+Here are the proposed modifications within the identify_sections function in the Canvas:
+
+
+
+
+
+
+Canvas
+
+Gemini can make mistakes, so double-check it
+
+Updated Paper Analyzer Script
+
+
+
+
+
+Export to Colab
+
+
+
+66676869707172737475767778798081828384858687888990919293949596979899100101102103104
+    # Add start/end char indices if needed for precise location tracking    # start_char: Optional[int] = None    # end_char: Optional[int] = None    def get_summary(self, summarizer, max_length: int = 150) -> str:        """Generate a summary of the section using the provided summarizer"""        # This method might not be needed if summarization is handled centrally        # Keeping it for potential future use or direct section summary access        if len(self.content.split()) < 30:  # If content is too short, don't summarize            return self.content        try:            # Assuming summarizer is the PaperProcessor's summarize_text method            return summarizer(self.content, max_length=max_length)        except Exception as e:            logger.error(f"Error summarizing {self.section_type}: {e}")            # Return first few sentences as fallback            try:                sentences = sent_tokenize(self.content)                return " ".join(sentences[:2]) + "..."            except Exception: # Handle potential errors in sent_tokenize                return self.content[:150] + "..."@dataclassclass KeyConcept:    """A key concept or term extracted from the paper"""    term: str    definition: str    importance_score: float    source_sections: List[str]    context: str@dataclassclass PaperAnalysis:    """Complete analysis results for an academic paper"""56class PaperSection:
+{
+  "title": "BERT: Pre-training of Deep Bidirectional Transformers for",
+  "authors": [
+    "Kenton Lee",
+    "Jacob Devlin",
+    "Kristina Toutanova",
+    "Language Understanding",
+    "Google AI Language",
+    "Ming-Wei Chang"
+  ],
+  "publication_year": 2018,
+  "doi": null,
+  "sections": {
+    "abstract": {
+      "title": "Abstract",
+      "content": "We introduce a new language representa-\ntion model called BERT, which stands for\nBidirectional Encoder Representations from\nTransformers. Unlike recent language repre-\nsentation models (Peters et al., 2018a; Rad-\nford et al., 2018), BERT is designed to pre-\ntrain deep bidirectional representations from\nunlabeled text by jointly conditioning on both\nleft and right context in all layers. As a re-\nsult, the pre-trained BERT model can be \ufb01ne-\ntuned with just one additional output layer\nto create state-of-the-art models for a wide\nrange of tasks, such as question answering and\nlanguage inference, without substantial task-\nspeci\ufb01c architecture modi\ufb01cations.\nBERT is conceptually simple and empirically\npowerful.\nIt obtains new state-of-the-art re-\nsults on eleven natural language processing\ntasks, including pushing the GLUE score to\n80.5% (7.7% point absolute improvement),\nMultiNLI accuracy to 86.7% (4.6% absolute\nimprovement), SQuAD v1.1 question answer-\ning Test F1 to 93.2 (1.5 point absolute im-\nprovement) and SQuAD v2.0 Test F1 to 83.1\n(5.1 point absolute improvement).",
+      "section_type": "abstract",
+      "page_numbers": [
+        1
+      ],
+      "confidence": 0.6
+    },
+    "introduction": {
+      "title": "1\nIntroduction",
+      "content": "Introduction\nLanguage model pre-training has been shown to\nbe effective for improving many natural language\nprocessing tasks (Dai and Le, 2015; Peters et al.,\n2018a; Radford et al., 2018; Howard and Ruder,\n2018). These include sentence-level tasks such as\nnatural language inference (Bowman et al., 2015;\nWilliams et al., 2018) and paraphrasing (Dolan\nand Brockett, 2005), which aim to predict the re-\nlationships between sentences by analyzing them\nholistically, as well as token-level tasks such as\nnamed entity recognition and question answering,\nwhere models are required to produce \ufb01ne-grained\noutput at the token level (Tjong Kim Sang and\nDe Meulder, 2003; Rajpurkar et al., 2016).\nThere are two existing strategies for apply-\ning pre-trained language representations to down-\nstream tasks: feature-based and \ufb01ne-tuning. The\nfeature-based approach, such as ELMo (Peters\net al., 2018a), uses task-speci\ufb01c architectures that\ninclude the pre-trained representations as addi-\ntional features. The \ufb01ne-tuning approach, such as\nthe Generative Pre-trained Transformer (OpenAI\nGPT) (Radford et al., 2018), introduces minimal\ntask-speci\ufb01c parameters, and is trained on the\ndownstream tasks by simply \ufb01ne-tuning all pre-\ntrained parameters. The two approaches share the\nsame objective function during pre-training, where\nthey use unidirectional language models to learn\ngeneral language representations.\nWe argue that current techniques restrict the\npower of the pre-trained representations, espe-\ncially for the \ufb01ne-tuning approaches.\nThe ma-\njor limitation is that standard language models are\nunidirectional, and this limits the choice of archi-\ntectures that can be used during pre-training. For\nexample, in OpenAI GPT, the authors use a left-to-\nright architecture, where every token can only at-\ntend to previous tokens in the self-attention layers\nof the Transformer (Vaswani et al., 2017). Such re-\nstrictions are sub-optimal for sentence-level tasks,\nand could be very harmful when applying \ufb01ne-\ntuning based approaches to token-level tasks such\nas question answering, where it is crucial to incor-\nporate context from both directions.\nIn this paper, we improve the \ufb01ne-tuning based\napproaches by proposing BERT: Bidirectional\nEncoder\nRepresentations\nfrom\nTransformers.\nBERT alleviates the previously mentioned unidi-\nrectionality constraint by using a \u201cmasked lan-\nguage model\u201d (MLM) pre-training objective, in-\nspired by the Cloze task (Taylor, 1953).\nThe\nmasked language model randomly masks some of\nthe tokens from the input, and the objective is to\npredict the original vocabulary id of the masked\narXiv:1810.04805v2  [cs.CL]  24 May 2019\n\n\n\n\nword based only on its context.\nUnlike left-to-\nright language model pre-training, the MLM ob-\njective enables the representation to fuse the left\nand the right context, which allows us to pre-\ntrain a deep bidirectional Transformer. In addi-\ntion to the masked language model, we also use\na \u201cnext sentence prediction\u201d task that jointly pre-\ntrains text-pair representations. The contributions\nof our paper are as follows:\n\u2022 We demonstrate the importance of bidirectional\npre-training for language representations. Un-\nlike Radford et al. (2018), which uses unidirec-\ntional language models for pre-training, BERT\nuses masked language models to enable pre-\ntrained deep bidirectional representations. This\nis also in contrast to Peters et al. (2018a), which\nuses a shallow concatenation of independently\ntrained left-to-right and right-to-left LMs.\n\u2022 We show that pre-trained representations reduce\nthe need for many heavily-engineered task-\nspeci\ufb01c architectures. BERT is the \ufb01rst \ufb01ne-\ntuning based representation model that achieves\nstate-of-the-art performance on a large suite\nof sentence-level and token-level tasks, outper-\nforming many task-speci\ufb01c architectures.\n\u2022 BERT advances the state of the art for eleven\nNLP tasks.\nThe code and pre-trained mod-\nels are available at https://github.com/\ngoogle-research/bert.",
+      "section_type": "introduction",
+      "page_numbers": [
+        1,
+        2
+      ],
+      "confidence": 0.6
+    },
+    "results": {
+      "title": "4\nExperiments",
+      "content": "Experiments\nIn this section, we present BERT \ufb01ne-tuning re-\nsults on 11 NLP tasks.\n4.1\nGLUE\nThe General Language Understanding Evaluation\n(GLUE) benchmark (Wang et al., 2018a) is a col-\nlection of diverse natural language understanding\ntasks. Detailed descriptions of GLUE datasets are\nincluded in Appendix B.1.\nTo \ufb01ne-tune on GLUE, we represent the input\nsequence (for single sentence or sentence pairs)\nas described in Section 3, and use the \ufb01nal hid-\nden vector C \u2208RH corresponding to the \ufb01rst\ninput token ([CLS]) as the aggregate representa-\ntion. The only new parameters introduced during\n\ufb01ne-tuning are classi\ufb01cation layer weights W \u2208\nRK\u00d7H, where K is the number of labels. We com-\npute a standard classi\ufb01cation loss with C and W,\ni.e., log(softmax(CW T )).\n7For example, the BERT SQuAD model can be trained in\naround 30 minutes on a single Cloud TPU to achieve a Dev\nF1 score of 91.0%.\n8See (10) in https://gluebenchmark.com/faq.\n\n\n\n\nSystem\nMNLI-(m/mm)\nQQP\nQNLI\nSST-2\nCoLA\nSTS-B\nMRPC\nRTE\nAverage\n392k\n363k\n108k\n67k\n8.5k\n5.7k\n3.5k\n2.5k\n-\nPre-OpenAI SOTA\n80.6/80.1\n66.1\n82.3\n93.2\n35.0\n81.0\n86.0\n61.7\n74.0\nBiLSTM+ELMo+Attn\n76.4/76.1\n64.8\n79.8\n90.4\n36.0\n73.3\n84.9\n56.8\n71.0\nOpenAI GPT\n82.1/81.4\n70.3\n87.4\n91.3\n45.4\n80.0\n82.3\n56.0\n75.1\nBERTBASE\n84.6/83.4\n71.2\n90.5\n93.5\n52.1\n85.8\n88.9\n66.4\n79.6\nBERTLARGE\n86.7/85.9\n72.1\n92.7\n94.9\n60.5\n86.5\n89.3\n70.1\n82.1\nTable 1: GLUE Test results, scored by the evaluation server (https://gluebenchmark.com/leaderboard).\nThe number below each task denotes the number of training examples. The \u201cAverage\u201d column is slightly different\nthan the of\ufb01cial GLUE score, since we exclude the problematic WNLI set.8 BERT and OpenAI GPT are single-\nmodel, single task. F1 scores are reported for QQP and MRPC, Spearman correlations are reported for STS-B, and\naccuracy scores are reported for the other tasks. We exclude entries that use BERT as one of their components.\nWe use a batch size of 32 and \ufb01ne-tune for 3\nepochs over the data for all GLUE tasks. For each\ntask, we selected the best \ufb01ne-tuning learning rate\n(among 5e-5, 4e-5, 3e-5, and 2e-5) on the Dev set.\nAdditionally, for BERTLARGE we found that \ufb01ne-\ntuning was sometimes unstable on small datasets,\nso we ran several random restarts and selected the\nbest model on the Dev set. With random restarts,\nwe use the same pre-trained checkpoint but per-\nform different \ufb01ne-tuning data shuf\ufb02ing and clas-\nsi\ufb01er layer initialization.9\nResults are presented in Table 1.\nBoth\nBERTBASE and BERTLARGE outperform all sys-\ntems on all tasks by a substantial margin, obtaining\n4.5% and 7.0% respective average accuracy im-\nprovement over the prior state of the art. Note that\nBERTBASE and OpenAI GPT are nearly identical\nin terms of model architecture apart from the at-\ntention masking. For the largest and most widely\nreported GLUE task, MNLI, BERT obtains a 4.6%\nabsolute accuracy improvement. On the of\ufb01cial\nGLUE leaderboard10, BERTLARGE obtains a score\nof 80.5, compared to OpenAI GPT, which obtains\n72.8 as of the date of writing.\nWe \ufb01nd that BERTLARGE signi\ufb01cantly outper-\nforms BERTBASE across all tasks, especially those\nwith very little training data. The effect of model\nsize is explored more thoroughly in Section 5.2.\n4.2\nSQuAD v1.1\nThe\nStanford\nQuestion\nAnswering\nDataset\n(SQuAD v1.1) is a collection of 100k crowd-\nsourced question/answer pairs (Rajpurkar et al.,\n2016).\nGiven a question and a passage from\n9The GLUE data set distribution does not include the Test\nlabels, and we only made a single GLUE evaluation server\nsubmission for each of BERTBASE and BERTLARGE.\n10https://gluebenchmark.com/leaderboard\nWikipedia containing the answer, the task is to\npredict the answer text span in the passage.\nAs shown in Figure 1, in the question answer-\ning task, we represent the input question and pas-\nsage as a single packed sequence, with the ques-\ntion using the A embedding and the passage using\nthe B embedding. We only introduce a start vec-\ntor S \u2208RH and an end vector E \u2208RH during\n\ufb01ne-tuning. The probability of word i being the\nstart of the answer span is computed as a dot prod-\nuct between Ti and S followed by a softmax over\nall of the words in the paragraph: Pi =\neS\u00b7Ti\nP\nj eS\u00b7Tj .\nThe analogous formula is used for the end of the\nanswer span. The score of a candidate span from\nposition i to position j is de\ufb01ned as S\u00b7Ti + E\u00b7Tj,\nand the maximum scoring span where j \u2265i is\nused as a prediction. The training objective is the\nsum of the log-likelihoods of the correct start and\nend positions. We \ufb01ne-tune for 3 epochs with a\nlearning rate of 5e-5 and a batch size of 32.\nTable 2 shows top leaderboard entries as well\nas results from top published systems (Seo et al.,\n2017; Clark and Gardner, 2018; Peters et al.,\n2018a; Hu et al., 2018). The top results from the\nSQuAD leaderboard do not have up-to-date public\nsystem descriptions available,11 and are allowed to\nuse any public data when training their systems.\nWe therefore use modest data augmentation in\nour system by \ufb01rst \ufb01ne-tuning on TriviaQA (Joshi\net al., 2017) befor \ufb01ne-tuning on SQuAD.\nOur best performing system outperforms the top\nleaderboard system by +1.5 F1 in ensembling and\n+1.3 F1 as a single system. In fact, our single\nBERT model outperforms the top ensemble sys-\ntem in terms of F1 score. Without TriviaQA \ufb01ne-\n11QANet is described in Yu et al. (2018), but the system\nhas improved substantially after publication.\n\n\n\n\nSystem\nDev\nTest\nEM\nF1\nEM\nF1\nTop Leaderboard Systems (Dec 10th, 2018)\nHuman\n-\n-\n82.3 91.2\n#1 Ensemble - nlnet\n-\n-\n86.0 91.7\n#2 Ensemble - QANet\n-\n-\n84.5 90.5\nPublished\nBiDAF+ELMo (Single)\n-\n85.6\n-\n85.8\nR.M. Reader (Ensemble)\n81.2 87.9 82.3 88.5\nOurs\nBERTBASE (Single)\n80.8 88.5\n-\n-\nBERTLARGE (Single)\n84.1 90.9\n-\n-\nBERTLARGE (Ensemble)\n85.8 91.8\n-\n-\nBERTLARGE (Sgl.+TriviaQA)\n84.2 91.1 85.1 91.8\nBERTLARGE (Ens.+TriviaQA) 86.2 92.2 87.4 93.2\nTable 2:\nSQuAD 1.1 results. The BERT ensemble\nis 7x systems which use different pre-training check-\npoints and \ufb01ne-tuning seeds.\nSystem\nDev\nTest\nEM\nF1\nEM\nF1\nTop Leaderboard Systems (Dec 10th, 2018)\nHuman\n86.3 89.0 86.9 89.5\n#1 Single - MIR-MRC (F-Net)\n-\n-\n74.8 78.0\n#2 Single - nlnet\n-\n-\n74.2 77.1\nPublished\nunet (Ensemble)\n-\n-\n71.4 74.9\nSLQA+ (Single)\n-\n71.4 74.4\nOurs\nBERTLARGE (Single)\n78.7 81.9 80.0 83.1\nTable 3: SQuAD 2.0 results. We exclude entries that\nuse BERT as one of their components.\ntuning data, we only lose 0.1-0.4 F1, still outper-\nforming all existing systems by a wide margin.12\n4.3\nSQuAD v2.0\nThe SQuAD 2.0 task extends the SQuAD 1.1\nproblem de\ufb01nition by allowing for the possibility\nthat no short answer exists in the provided para-\ngraph, making the problem more realistic.\nWe use a simple approach to extend the SQuAD\nv1.1 BERT model for this task. We treat ques-\ntions that do not have an answer as having an an-\nswer span with start and end at the [CLS] to-\nken. The probability space for the start and end\nanswer span positions is extended to include the\nposition of the [CLS] token. For prediction, we\ncompare the score of the no-answer span: snull =\nS\u00b7C + E\u00b7C to the score of the best non-null span\n12The TriviaQA data we used consists of paragraphs from\nTriviaQA-Wiki formed of the \ufb01rst 400 tokens in documents,\nthat contain at least one of the provided possible answers.\nSystem\nDev\nTest\nESIM+GloVe\n51.9 52.7\nESIM+ELMo\n59.1 59.2\nOpenAI GPT\n-\n78.0\nBERTBASE\n81.6\n-\nBERTLARGE\n86.6 86.3\nHuman (expert)\u2020\n-\n85.0\nHuman (5 annotations)\u2020\n-\n88.0\nTable 4: SWAG Dev and Test accuracies. \u2020Human per-\nformance is measured with 100 samples, as reported in\nthe SWAG paper.\n\u02c6\nsi,j = maxj\u2265iS\u00b7Ti + E\u00b7Tj. We predict a non-null\nanswer when \u02c6\nsi,j > snull + \u03c4, where the thresh-\nold \u03c4 is selected on the dev set to maximize F1.\nWe did not use TriviaQA data for this model. We\n\ufb01ne-tuned for 2 epochs with a learning rate of 5e-5\nand a batch size of 48.\nThe results compared to prior leaderboard en-\ntries and top published work (Sun et al., 2018;\nWang et al., 2018b) are shown in Table 3, exclud-\ning systems that use BERT as one of their com-\nponents. We observe a +5.1 F1 improvement over\nthe previous best system.\n4.4\nSWAG\nThe Situations With Adversarial Generations\n(SWAG) dataset contains 113k sentence-pair com-\npletion examples that evaluate grounded common-\nsense inference (Zellers et al., 2018). Given a sen-\ntence, the task is to choose the most plausible con-\ntinuation among four choices.\nWhen \ufb01ne-tuning on the SWAG dataset, we\nconstruct four input sequences, each containing\nthe concatenation of the given sentence (sentence\nA) and a possible continuation (sentence B). The\nonly task-speci\ufb01c parameters introduced is a vec-\ntor whose dot product with the [CLS] token rep-\nresentation C denotes a score for each choice\nwhich is normalized with a softmax layer.\nWe \ufb01ne-tune the model for 3 epochs with a\nlearning rate of 2e-5 and a batch size of 16. Re-\nsults are presented in Table 4. BERTLARGE out-\nperforms the authors\u2019 baseline ESIM+ELMo sys-\ntem by +27.1% and OpenAI GPT by 8.3%.\n5\nAblation Studies\nIn this section, we perform ablation experiments\nover a number of facets of BERT in order to better\nunderstand their relative importance. Additional\n\n\n\n\nDev Set\nTasks\nMNLI-m QNLI MRPC SST-2 SQuAD\n(Acc)\n(Acc)\n(Acc)\n(Acc)\n(F1)\nBERTBASE\n84.4\n88.4\n86.7\n92.7\n88.5\nNo NSP\n83.9\n84.9\n86.5\n92.6\n87.9\nLTR & No NSP\n82.1\n84.3\n77.5\n92.1\n77.8\n+ BiLSTM\n82.1\n84.1\n75.7\n91.6\n84.9\nTable 5: Ablation over the pre-training tasks using the\nBERTBASE architecture. \u201cNo NSP\u201d is trained without\nthe next sentence prediction task. \u201cLTR & No NSP\u201d is\ntrained as a left-to-right LM without the next sentence\nprediction, like OpenAI GPT. \u201c+ BiLSTM\u201d adds a ran-\ndomly initialized BiLSTM on top of the \u201cLTR + No\nNSP\u201d model during \ufb01ne-tuning.\nablation studies can be found in Appendix C.\n5.1\nEffect of Pre-training Tasks\nWe demonstrate the importance of the deep bidi-\nrectionality of BERT by evaluating two pre-\ntraining objectives using exactly the same pre-\ntraining data, \ufb01ne-tuning scheme, and hyperpa-\nrameters as BERTBASE:\nNo NSP: A bidirectional model which is trained\nusing the \u201cmasked LM\u201d (MLM) but without the\n\u201cnext sentence prediction\u201d (NSP) task.\nLTR & No NSP: A left-context-only model which\nis trained using a standard Left-to-Right (LTR)\nLM, rather than an MLM. The left-only constraint\nwas also applied at \ufb01ne-tuning, because removing\nit introduced a pre-train/\ufb01ne-tune mismatch that\ndegraded downstream performance. Additionally,\nthis model was pre-trained without the NSP task.\nThis is directly comparable to OpenAI GPT, but\nusing our larger training dataset, our input repre-\nsentation, and our \ufb01ne-tuning scheme.\nWe \ufb01rst examine the impact brought by the NSP\ntask.\nIn Table 5, we show that removing NSP\nhurts performance signi\ufb01cantly on QNLI, MNLI,\nand SQuAD 1.1. Next, we evaluate the impact\nof training bidirectional representations by com-\nparing \u201cNo NSP\u201d to \u201cLTR & No NSP\u201d. The LTR\nmodel performs worse than the MLM model on all\ntasks, with large drops on MRPC and SQuAD.\nFor SQuAD it is intuitively clear that a LTR\nmodel will perform poorly at token predictions,\nsince the token-level hidden states have no right-\nside context. In order to make a good faith at-\ntempt at strengthening the LTR system, we added\na randomly initialized BiLSTM on top. This does\nsigni\ufb01cantly improve results on SQuAD, but the\nresults are still far worse than those of the pre-\ntrained bidirectional models. The BiLSTM hurts\nperformance on the GLUE tasks.\nWe recognize that it would also be possible to\ntrain separate LTR and RTL models and represent\neach token as the concatenation of the two mod-\nels, as ELMo does. However: (a) this is twice as\nexpensive as a single bidirectional model; (b) this\nis non-intuitive for tasks like QA, since the RTL\nmodel would not be able to condition the answer\non the question; (c) this it is strictly less powerful\nthan a deep bidirectional model, since it can use\nboth left and right context at every layer.\n5.2\nEffect of Model Size\nIn this section, we explore the effect of model size\non \ufb01ne-tuning task accuracy. We trained a number\nof BERT models with a differing number of layers,\nhidden units, and attention heads, while otherwise\nusing the same hyperparameters and training pro-\ncedure as described previously.\nResults on selected GLUE tasks are shown in\nTable 6. In this table, we report the average Dev\nSet accuracy from 5 random restarts of \ufb01ne-tuning.\nWe can see that larger models lead to a strict ac-\ncuracy improvement across all four datasets, even\nfor MRPC which only has 3,600 labeled train-\ning examples, and is substantially different from\nthe pre-training tasks. It is also perhaps surpris-\ning that we are able to achieve such signi\ufb01cant\nimprovements on top of models which are al-\nready quite large relative to the existing literature.\nFor example, the largest Transformer explored in\nVaswani et al. (2017) is (L=6, H=1024, A=16)\nwith 100M parameters for the encoder, and the\nlargest Transformer we have found in the literature\nis (L=64, H=512, A=2) with 235M parameters\n(Al-Rfou et al., 2018). By contrast, BERTBASE\ncontains 110M parameters and BERTLARGE con-\ntains 340M parameters.\nIt has long been known that increasing the\nmodel size will lead to continual improvements\non large-scale tasks such as machine translation\nand language modeling, which is demonstrated\nby the LM perplexity of held-out training data\nshown in Table 6.\nHowever, we believe that\nthis is the \ufb01rst work to demonstrate convinc-\ningly that scaling to extreme model sizes also\nleads to large improvements on very small scale\ntasks, provided that the model has been suf\ufb01-\nciently pre-trained. Peters et al. (2018b) presented\n\n\n\n\nmixed results on the downstream task impact of\nincreasing the pre-trained bi-LM size from two\nto four layers and Melamud et al. (2016) men-\ntioned in passing that increasing hidden dimen-\nsion size from 200 to 600 helped, but increasing\nfurther to 1,000 did not bring further improve-\nments. Both of these prior works used a feature-\nbased approach \u2014 we hypothesize that when the\nmodel is \ufb01ne-tuned directly on the downstream\ntasks and uses only a very small number of ran-\ndomly initialized additional parameters, the task-\nspeci\ufb01c models can bene\ufb01t from the larger, more\nexpressive pre-trained representations even when\ndownstream task data is very small.\n5.3\nFeature-based Approach with BERT\nAll of the BERT results presented so far have used\nthe \ufb01ne-tuning approach, where a simple classi\ufb01-\ncation layer is added to the pre-trained model, and\nall parameters are jointly \ufb01ne-tuned on a down-\nstream task. However, the feature-based approach,\nwhere \ufb01xed features are extracted from the pre-\ntrained model, has certain advantages. First, not\nall tasks can be easily represented by a Trans-\nformer encoder architecture, and therefore require\na task-speci\ufb01c model architecture to be added.\nSecond, there are major computational bene\ufb01ts\nto pre-compute an expensive representation of the\ntraining data once and then run many experiments\nwith cheaper models on top of this representation.\nIn this section, we compare the two approaches\nby applying BERT to the CoNLL-2003 Named\nEntity Recognition (NER) task (Tjong Kim Sang\nand De Meulder, 2003). In the input to BERT, we\nuse a case-preserving WordPiece model, and we\ninclude the maximal document context provided\nby the data. Following standard practice, we for-\nmulate this as a tagging task but do not use a CRF\nHyperparams\nDev Set Accuracy\n#L\n#H #A LM (ppl) MNLI-m MRPC SST-2\n3\n768\n12\n5.84\n77.9\n79.8\n88.4\n6\n768\n3\n5.24\n80.6\n82.2\n90.7\n6\n768\n12\n4.68\n81.9\n84.8\n91.3\n12\n768\n12\n3.99\n84.4\n86.7\n92.9\n12 1024\n16\n3.54\n85.7\n86.9\n93.3\n24 1024\n16\n3.23\n86.6\n87.8\n93.7\nTable 6:\nAblation over BERT model size. #L = the\nnumber of layers; #H = hidden size; #A = number of at-\ntention heads. \u201cLM (ppl)\u201d is the masked LM perplexity\nof held-out training data.\nSystem\nDev F1 Test F1\nELMo (Peters et al., 2018a)\n95.7\n92.2\nCVT (Clark et al., 2018)\n-\n92.6\nCSE (Akbik et al., 2018)\n-\n93.1\nFine-tuning approach\nBERTLARGE\n96.6\n92.8\nBERTBASE\n96.4\n92.4\nFeature-based approach (BERTBASE)\nEmbeddings\n91.0\n-\nSecond-to-Last Hidden\n95.6\n-\nLast Hidden\n94.9\n-\nWeighted Sum Last Four Hidden\n95.9\n-\nConcat Last Four Hidden\n96.1\n-\nWeighted Sum All 12 Layers\n95.5\n-\nTable 7: CoNLL-2003 Named Entity Recognition re-\nsults. Hyperparameters were selected using the Dev\nset. The reported Dev and Test scores are averaged over\n5 random restarts using those hyperparameters.\nlayer in the output. We use the representation of\nthe \ufb01rst sub-token as the input to the token-level\nclassi\ufb01er over the NER label set.\nTo ablate the \ufb01ne-tuning approach, we apply the\nfeature-based approach by extracting the activa-\ntions from one or more layers without \ufb01ne-tuning\nany parameters of BERT. These contextual em-\nbeddings are used as input to a randomly initial-\nized two-layer 768-dimensional BiLSTM before\nthe classi\ufb01cation layer.\nResults are presented in Table 7. BERTLARGE\nperforms competitively with state-of-the-art meth-\nods. The best performing method concatenates the\ntoken representations from the top four hidden lay-\ners of the pre-trained Transformer, which is only\n0.3 F1 behind \ufb01ne-tuning the entire model. This\ndemonstrates that BERT is effective for both \ufb01ne-\ntuning and feature-based approaches.",
+      "section_type": "results",
+      "page_numbers": [
+        5,
+        6,
+        7,
+        8,
+        9
+      ],
+      "confidence": 0.6
+    },
+    "conclusion": {
+      "title": "6\nConclusion",
+      "content": "Conclusion\nRecent empirical improvements due to transfer\nlearning with language models have demonstrated\nthat rich, unsupervised pre-training is an integral\npart of many language understanding systems. In\nparticular, these results enable even low-resource\ntasks to bene\ufb01t from deep unidirectional architec-\ntures. Our major contribution is further general-\nizing these \ufb01ndings to deep bidirectional architec-\ntures, allowing the same pre-trained model to suc-\ncessfully tackle a broad set of NLP tasks.",
+      "section_type": "conclusion",
+      "page_numbers": [
+        9,
+        10
+      ],
+      "confidence": 0.6
+    },
+    "references": {
+      "title": "References",
+      "content": "References\nAlan Akbik, Duncan Blythe, and Roland Vollgraf.\n2018. Contextual string embeddings for sequence\nlabeling. In Proceedings of the 27th International\nConference on Computational Linguistics, pages\n1638\u20131649.\nRami Al-Rfou, Dokook Choe, Noah Constant, Mandy\nGuo, and Llion Jones. 2018.\nCharacter-level lan-\nguage modeling with deeper self-attention.\narXiv\npreprint arXiv:1808.04444.\nRie Kubota Ando and Tong Zhang. 2005. A framework\nfor learning predictive structures from multiple tasks\nand unlabeled data. Journal of Machine Learning\nResearch, 6(Nov):1817\u20131853.\nLuisa Bentivogli,\nBernardo Magnini,\nIdo Dagan,\nHoa Trang Dang, and Danilo Giampiccolo. 2009.\nThe \ufb01fth PASCAL recognizing textual entailment\nchallenge. In TAC. NIST.\nJohn Blitzer, Ryan McDonald, and Fernando Pereira.\n2006. Domain adaptation with structural correspon-\ndence learning. In Proceedings of the 2006 confer-\nence on empirical methods in natural language pro-\ncessing, pages 120\u2013128. Association for Computa-\ntional Linguistics.\nSamuel R. Bowman, Gabor Angeli, Christopher Potts,\nand Christopher D. Manning. 2015. A large anno-\ntated corpus for learning natural language inference.\nIn EMNLP. Association for Computational Linguis-\ntics.\nPeter F Brown, Peter V Desouza, Robert L Mercer,\nVincent J Della Pietra, and Jenifer C Lai. 1992.\nClass-based n-gram models of natural language.\nComputational linguistics, 18(4):467\u2013479.\nDaniel Cer, Mona Diab, Eneko Agirre, Inigo Lopez-\nGazpio, and Lucia Specia. 2017.\nSemeval-2017\ntask 1: Semantic textual similarity multilingual and\ncrosslingual focused evaluation.\nIn Proceedings\nof the 11th International Workshop on Semantic\nEvaluation (SemEval-2017), pages 1\u201314, Vancou-\nver, Canada. Association for Computational Lin-\nguistics.\nCiprian Chelba, Tomas Mikolov, Mike Schuster, Qi Ge,\nThorsten Brants, Phillipp Koehn, and Tony Robin-\nson. 2013. One billion word benchmark for measur-\ning progress in statistical language modeling. arXiv\npreprint arXiv:1312.3005.\nZ. Chen, H. Zhang, X. Zhang, and L. Zhao. 2018.\nQuora question pairs.\nChristopher Clark and Matt Gardner. 2018.\nSimple\nand effective multi-paragraph reading comprehen-\nsion. In ACL.\nKevin Clark, Minh-Thang Luong, Christopher D Man-\nning, and Quoc Le. 2018.\nSemi-supervised se-\nquence modeling with cross-view training. In Pro-\nceedings of the 2018 Conference on Empirical Meth-\nods in Natural Language Processing, pages 1914\u2013\n1925.\nRonan Collobert and Jason Weston. 2008. A uni\ufb01ed\narchitecture for natural language processing: Deep\nneural networks with multitask learning.\nIn Pro-\nceedings of the 25th international conference on\nMachine learning, pages 160\u2013167. ACM.\nAlexis Conneau, Douwe Kiela, Holger Schwenk, Lo\u00a8\u0131c\nBarrault, and Antoine Bordes. 2017.\nSupervised\nlearning of universal sentence representations from\nnatural language inference data. In Proceedings of\nthe 2017 Conference on Empirical Methods in Nat-\nural Language Processing, pages 670\u2013680, Copen-\nhagen, Denmark. Association for Computational\nLinguistics.\nAndrew M Dai and Quoc V Le. 2015. Semi-supervised\nsequence learning. In Advances in neural informa-\ntion processing systems, pages 3079\u20133087.\nJ. Deng, W. Dong, R. Socher, L.-J. Li, K. Li, and L. Fei-\nFei. 2009. ImageNet: A Large-Scale Hierarchical\nImage Database. In CVPR09.\nWilliam B Dolan and Chris Brockett. 2005. Automati-\ncally constructing a corpus of sentential paraphrases.\nIn Proceedings of the Third International Workshop\non Paraphrasing (IWP2005).\nWilliam Fedus, Ian Goodfellow, and Andrew M Dai.\n2018. Maskgan: Better text generation via \ufb01lling in\nthe . arXiv preprint arXiv:1801.07736.\nDan Hendrycks and Kevin Gimpel. 2016.\nBridging\nnonlinearities and stochastic regularizers with gaus-\nsian error linear units. CoRR, abs/1606.08415.\nFelix Hill, Kyunghyun Cho, and Anna Korhonen. 2016.\nLearning distributed representations of sentences\nfrom unlabelled data. In Proceedings of the 2016\nConference of the North American Chapter of the\nAssociation for Computational Linguistics: Human\nLanguage Technologies. Association for Computa-\ntional Linguistics.\nJeremy Howard and Sebastian Ruder. 2018. Universal\nlanguage model \ufb01ne-tuning for text classi\ufb01cation. In\nACL. Association for Computational Linguistics.\nMinghao Hu, Yuxing Peng, Zhen Huang, Xipeng Qiu,\nFuru Wei, and Ming Zhou. 2018.\nReinforced\nmnemonic reader for machine reading comprehen-\nsion. In IJCAI.\nYacine Jernite, Samuel R. Bowman, and David Son-\ntag. 2017. Discourse-based objectives for fast un-\nsupervised sentence representation learning. CoRR,\nabs/1705.00557.\n\n\n\n\nMandar Joshi, Eunsol Choi, Daniel S Weld, and Luke\nZettlemoyer. 2017. Triviaqa: A large scale distantly\nsupervised challenge dataset for reading comprehen-\nsion. In ACL.\nRyan Kiros, Yukun Zhu, Ruslan R Salakhutdinov,\nRichard Zemel, Raquel Urtasun, Antonio Torralba,\nand Sanja Fidler. 2015. Skip-thought vectors. In\nAdvances in neural information processing systems,\npages 3294\u20133302.\nQuoc Le and Tomas Mikolov. 2014. Distributed rep-\nresentations of sentences and documents. In Inter-\nnational Conference on Machine Learning, pages\n1188\u20131196.\nHector J Levesque, Ernest Davis, and Leora Morgen-\nstern. 2011. The winograd schema challenge. In\nAaai spring symposium: Logical formalizations of\ncommonsense reasoning, volume 46, page 47.\nLajanugen Logeswaran and Honglak Lee. 2018. An\nef\ufb01cient framework for learning sentence represen-\ntations.\nIn International Conference on Learning\nRepresentations.\nBryan McCann, James Bradbury, Caiming Xiong, and\nRichard Socher. 2017. Learned in translation: Con-\ntextualized word vectors. In NIPS.\nOren Melamud, Jacob Goldberger, and Ido Dagan.\n2016. context2vec: Learning generic context em-\nbedding with bidirectional LSTM. In CoNLL.\nTomas Mikolov, Ilya Sutskever, Kai Chen, Greg S Cor-\nrado, and Jeff Dean. 2013. Distributed representa-\ntions of words and phrases and their compositional-\nity. In Advances in Neural Information Processing\nSystems 26, pages 3111\u20133119. Curran Associates,\nInc.\nAndriy Mnih and Geoffrey E Hinton. 2009. A scal-\nable hierarchical distributed language model.\nIn\nD. Koller, D. Schuurmans, Y. Bengio, and L. Bot-\ntou, editors, Advances in Neural Information Pro-\ncessing Systems 21, pages 1081\u20131088. Curran As-\nsociates, Inc.\nAnkur P Parikh, Oscar T\u00a8ackstr\u00a8om, Dipanjan Das, and\nJakob Uszkoreit. 2016. A decomposable attention\nmodel for natural language inference. In EMNLP.\nJeffrey Pennington, Richard Socher, and Christo-\npher D. Manning. 2014. Glove: Global vectors for\nword representation. In Empirical Methods in Nat-\nural Language Processing (EMNLP), pages 1532\u2013\n1543.\nMatthew Peters, Waleed Ammar, Chandra Bhagavat-\nula, and Russell Power. 2017. Semi-supervised se-\nquence tagging with bidirectional language models.\nIn ACL.\nMatthew Peters, Mark Neumann, Mohit Iyyer, Matt\nGardner, Christopher Clark, Kenton Lee, and Luke\nZettlemoyer. 2018a. Deep contextualized word rep-\nresentations. In NAACL.\nMatthew Peters, Mark Neumann, Luke Zettlemoyer,\nand Wen-tau Yih. 2018b.\nDissecting contextual\nword embeddings: Architecture and representation.\nIn Proceedings of the 2018 Conference on Empiri-\ncal Methods in Natural Language Processing, pages\n1499\u20131509.\nAlec Radford, Karthik Narasimhan, Tim Salimans, and\nIlya Sutskever. 2018.\nImproving language under-\nstanding with unsupervised learning. Technical re-\nport, OpenAI.\nPranav Rajpurkar, Jian Zhang, Konstantin Lopyrev, and\nPercy Liang. 2016. Squad: 100,000+ questions for\nmachine comprehension of text. In Proceedings of\nthe 2016 Conference on Empirical Methods in Nat-\nural Language Processing, pages 2383\u20132392.\nMinjoon Seo, Aniruddha Kembhavi, Ali Farhadi, and\nHannaneh Hajishirzi. 2017. Bidirectional attention\n\ufb02ow for machine comprehension. In ICLR.\nRichard Socher, Alex Perelygin, Jean Wu, Jason\nChuang, Christopher D Manning, Andrew Ng, and\nChristopher Potts. 2013.\nRecursive deep models\nfor semantic compositionality over a sentiment tree-\nbank.\nIn Proceedings of the 2013 conference on\nempirical methods in natural language processing,\npages 1631\u20131642.\nFu Sun, Linyang Li, Xipeng Qiu, and Yang Liu.\n2018.\nU-net:\nMachine reading comprehension\nwith unanswerable questions.\narXiv preprint\narXiv:1810.06638.\nWilson L Taylor. 1953.\nCloze procedure:\nA new\ntool for measuring readability. Journalism Bulletin,\n30(4):415\u2013433.\nErik F Tjong Kim Sang and Fien De Meulder.\n2003.\nIntroduction to the conll-2003 shared task:\nLanguage-independent named entity recognition. In\nCoNLL.\nJoseph Turian, Lev Ratinov, and Yoshua Bengio. 2010.\nWord representations: A simple and general method\nfor semi-supervised learning. In Proceedings of the\n48th Annual Meeting of the Association for Compu-\ntational Linguistics, ACL \u201910, pages 384\u2013394.\nAshish Vaswani, Noam Shazeer, Niki Parmar, Jakob\nUszkoreit, Llion Jones, Aidan N Gomez, Lukasz\nKaiser, and Illia Polosukhin. 2017. Attention is all\nyou need. In Advances in Neural Information Pro-\ncessing Systems, pages 6000\u20136010.\nPascal Vincent, Hugo Larochelle, Yoshua Bengio, and\nPierre-Antoine Manzagol. 2008.\nExtracting and\ncomposing robust features with denoising autoen-\ncoders.\nIn Proceedings of the 25th international\nconference on Machine learning, pages 1096\u20131103.\nACM.\nAlex Wang, Amanpreet Singh, Julian Michael, Fe-\nlix Hill, Omer Levy, and Samuel Bowman. 2018a.\nGlue: A multi-task benchmark and analysis platform\n\n\n\n\nfor natural language understanding. In Proceedings\nof the 2018 EMNLP Workshop BlackboxNLP: An-\nalyzing and Interpreting Neural Networks for NLP,\npages 353\u2013355.\nWei Wang, Ming Yan, and Chen Wu. 2018b. Multi-\ngranularity hierarchical attention fusion networks\nfor reading comprehension and question answering.\nIn Proceedings of the 56th Annual Meeting of the As-\nsociation for Computational Linguistics (Volume 1:\nLong Papers). Association for Computational Lin-\nguistics.\nAlex Warstadt, Amanpreet Singh, and Samuel R Bow-\nman. 2018.\nNeural network acceptability judg-\nments. arXiv preprint arXiv:1805.12471.\nAdina Williams, Nikita Nangia, and Samuel R Bow-\nman. 2018.\nA broad-coverage challenge corpus\nfor sentence understanding through inference.\nIn\nNAACL.\nYonghui Wu, Mike Schuster, Zhifeng Chen, Quoc V\nLe,\nMohammad Norouzi,\nWolfgang Macherey,\nMaxim Krikun,\nYuan Cao,\nQin Gao,\nKlaus\nMacherey, et al. 2016.\nGoogle\u2019s neural ma-\nchine translation system: Bridging the gap between\nhuman and machine translation.\narXiv preprint\narXiv:1609.08144.\nJason Yosinski, Jeff Clune, Yoshua Bengio, and Hod\nLipson. 2014. How transferable are features in deep\nneural networks? In Advances in neural information\nprocessing systems, pages 3320\u20133328.\nAdams Wei Yu, David Dohan, Minh-Thang Luong, Rui\nZhao, Kai Chen, Mohammad Norouzi, and Quoc V\nLe. 2018.\nQANet: Combining local convolution\nwith global self-attention for reading comprehen-\nsion. In ICLR.\nRowan Zellers, Yonatan Bisk, Roy Schwartz, and Yejin\nChoi. 2018. Swag: A large-scale adversarial dataset\nfor grounded commonsense inference. In Proceed-\nings of the 2018 Conference on Empirical Methods\nin Natural Language Processing (EMNLP).\nYukun Zhu, Ryan Kiros, Rich Zemel, Ruslan Salakhut-\ndinov, Raquel Urtasun, Antonio Torralba, and Sanja\nFidler. 2015. Aligning books and movies: Towards\nstory-like visual explanations by watching movies\nand reading books.\nIn Proceedings of the IEEE\ninternational conference on computer vision, pages\n19\u201327.\nAppendix for \u201cBERT: Pre-training of\nDeep Bidirectional Transformers for\nLanguage Understanding\u201d\nWe organize the appendix into three sections:\n\u2022 Additional implementation details for BERT\nare presented in Appendix A;\n\u2022 Additional details for our experiments are\npresented in Appendix B; and\n\u2022 Additional ablation studies are presented in\nAppendix C.\nWe present additional ablation studies for\nBERT including:\n\u2013 Effect of Number of Training Steps; and\n\u2013 Ablation for Different Masking Proce-\ndures.\nA\nAdditional Details for BERT\nA.1\nIllustration of the Pre-training Tasks\nWe provide examples of the pre-training tasks in\nthe following.\nMasked LM and the Masking Procedure\nAs-\nsuming the unlabeled sentence is\nmy dog is\nhairy, and during the random masking procedure\nwe chose the 4-th token (which corresponding to\nhairy), our masking procedure can be further il-\nlustrated by\n\u2022 80% of the time: Replace the word with the\n[MASK] token, e.g., my dog is hairy \u2192\nmy dog is [MASK]\n\u2022 10% of the time: Replace the word with a\nrandom word, e.g., my dog is hairy \u2192my\ndog is apple\n\u2022 10% of the time:\nKeep the word un-\nchanged, e.g., my dog is hairy \u2192my dog\nis hairy. The purpose of this is to bias the\nrepresentation towards the actual observed\nword.\nThe advantage of this procedure is that the\nTransformer encoder does not know which words\nit will be asked to predict or which have been re-\nplaced by random words, so it is forced to keep\na distributional contextual representation of ev-\nery input token.\nAdditionally, because random\nreplacement only occurs for 1.5% of all tokens\n(i.e., 10% of 15%), this does not seem to harm\nthe model\u2019s language understanding capability. In\nSection C.2, we evaluate the impact this proce-\ndure.\nCompared to standard langauge model training,\nthe masked LM only make predictions on 15% of\ntokens in each batch, which suggests that more\npre-training steps may be required for the model\n\n\n\n\nBERT (Ours)\nTrm\nTrm\nTrm\nTrm\nTrm\nTrm\n...\n...\nTrm\nTrm\nTrm\nTrm\nTrm\nTrm\n...\n...\nOpenAI GPT\nLstm\nELMo\nLstm\nLstm\nLstm\nLstm\nLstm\nLstm\nLstm\nLstm\nLstm\nLstm\nLstm\n T1\nT2\n TN\n...\n...\n...\n...\n...\n E1\nE2\n EN\n...\n T1\nT2\nTN\n...\n E1\nE2\n EN\n...\n T1\nT2\n TN\n...\n E1\nE2\n EN\n...\nFigure 3: Differences in pre-training model architectures. BERT uses a bidirectional Transformer. OpenAI GPT\nuses a left-to-right Transformer. ELMo uses the concatenation of independently trained left-to-right and right-to-\nleft LSTMs to generate features for downstream tasks. Among the three, only BERT representations are jointly\nconditioned on both left and right context in all layers. In addition to the architecture differences, BERT and\nOpenAI GPT are \ufb01ne-tuning approaches, while ELMo is a feature-based approach.\nto converge. In Section C.1 we demonstrate that\nMLM does converge marginally slower than a left-\nto-right model (which predicts every token), but\nthe empirical improvements of the MLM model\nfar outweigh the increased training cost.\nNext Sentence Prediction\nThe next sentence\nprediction task can be illustrated in the following\nexamples.\nInput = [CLS] the man went to [MASK] store [SEP]\nhe bought a gallon [MASK] milk [SEP]\nLabel = IsNext\nInput = [CLS] the man [MASK] to the store [SEP]\npenguin [MASK] are flight ##less birds [SEP]\nLabel = NotNext\nA.2\nPre-training Procedure\nTo generate each training input sequence, we sam-\nple two spans of text from the corpus, which we\nrefer to as \u201csentences\u201d even though they are typ-\nically much longer than single sentences (but can\nbe shorter also). The \ufb01rst sentence receives the A\nembedding and the second receives the B embed-\nding. 50% of the time B is the actual next sentence\nthat follows A and 50% of the time it is a random\nsentence, which is done for the \u201cnext sentence pre-\ndiction\u201d task. They are sampled such that the com-\nbined length is \u2264512 tokens. The LM masking is\napplied after WordPiece tokenization with a uni-\nform masking rate of 15%, and no special consid-\neration given to partial word pieces.\nWe train with batch size of 256 sequences (256\nsequences * 512 tokens = 128,000 tokens/batch)\nfor 1,000,000 steps, which is approximately 40\nepochs over the 3.3 billion word corpus.\nWe\nuse Adam with learning rate of 1e-4, \u03b21 = 0.9,\n\u03b22 = 0.999, L2 weight decay of 0.01, learning\nrate warmup over the \ufb01rst 10,000 steps, and linear\ndecay of the learning rate. We use a dropout prob-\nability of 0.1 on all layers. We use a gelu acti-\nvation (Hendrycks and Gimpel, 2016) rather than\nthe standard relu, following OpenAI GPT. The\ntraining loss is the sum of the mean masked LM\nlikelihood and the mean next sentence prediction\nlikelihood.\nTraining of BERTBASE was performed on 4\nCloud TPUs in Pod con\ufb01guration (16 TPU chips\ntotal).13 Training of BERTLARGE was performed\non 16 Cloud TPUs (64 TPU chips total). Each pre-\ntraining took 4 days to complete.\nLonger sequences are disproportionately expen-\nsive because attention is quadratic to the sequence\nlength. To speed up pretraing in our experiments,\nwe pre-train the model with sequence length of\n128 for 90% of the steps. Then, we train the rest\n10% of the steps of sequence of 512 to learn the\npositional embeddings.\nA.3\nFine-tuning Procedure\nFor \ufb01ne-tuning, most model hyperparameters are\nthe same as in pre-training, with the exception of\nthe batch size, learning rate, and number of train-\ning epochs. The dropout probability was always\nkept at 0.1. The optimal hyperparameter values\nare task-speci\ufb01c, but we found the following range\nof possible values to work well across all tasks:\n\u2022 Batch size: 16, 32\n13https://cloudplatform.googleblog.com/2018/06/Cloud-\nTPU-now-offers-preemptible-pricing-and-global-\navailability.html\n\n\n\n\n\u2022 Learning rate (Adam): 5e-5, 3e-5, 2e-5\n\u2022 Number of epochs: 2, 3, 4\nWe also observed that large data sets (e.g.,\n100k+ labeled training examples) were far less\nsensitive to hyperparameter choice than small data\nsets. Fine-tuning is typically very fast, so it is rea-\nsonable to simply run an exhaustive search over\nthe above parameters and choose the model that\nperforms best on the development set.\nA.4\nComparison of BERT, ELMo ,and\nOpenAI GPT\nHere we studies the differences in recent popular\nrepresentation learning models including ELMo,\nOpenAI GPT and BERT. The comparisons be-\ntween the model architectures are shown visually\nin Figure 3. Note that in addition to the architec-\nture differences, BERT and OpenAI GPT are \ufb01ne-\ntuning approaches, while ELMo is a feature-based\napproach.\nThe most comparable existing pre-training\nmethod to BERT is OpenAI GPT, which trains a\nleft-to-right Transformer LM on a large text cor-\npus. In fact, many of the design decisions in BERT\nwere intentionally made to make it as close to\nGPT as possible so that the two methods could be\nminimally compared. The core argument of this\nwork is that the bi-directionality and the two pre-\ntraining tasks presented in Section 3.1 account for\nthe majority of the empirical improvements, but\nwe do note that there are several other differences\nbetween how BERT and GPT were trained:\n\u2022 GPT is trained on the BooksCorpus (800M\nwords); BERT is trained on the BooksCor-\npus (800M words) and Wikipedia (2,500M\nwords).\n\u2022 GPT uses a sentence separator ([SEP]) and\nclassi\ufb01er token ([CLS]) which are only in-\ntroduced at \ufb01ne-tuning time; BERT learns\n[SEP], [CLS] and sentence A/B embed-\ndings during pre-training.\n\u2022 GPT was trained for 1M steps with a batch\nsize of 32,000 words; BERT was trained for\n1M steps with a batch size of 128,000 words.\n\u2022 GPT used the same learning rate of 5e-5 for\nall \ufb01ne-tuning experiments; BERT chooses a\ntask-speci\ufb01c \ufb01ne-tuning learning rate which\nperforms the best on the development set.\nTo isolate the effect of these differences, we per-\nform ablation experiments in Section 5.1 which\ndemonstrate that the majority of the improvements\nare in fact coming from the two pre-training tasks\nand the bidirectionality they enable.\nA.5\nIllustrations of Fine-tuning on Different\nTasks\nThe illustration of \ufb01ne-tuning BERT on different\ntasks can be seen in Figure 4. Our task-speci\ufb01c\nmodels are formed by incorporating BERT with\none additional output layer, so a minimal num-\nber of parameters need to be learned from scratch.\nAmong the tasks, (a) and (b) are sequence-level\ntasks while (c) and (d) are token-level tasks. In\nthe \ufb01gure, E represents the input embedding, Ti\nrepresents the contextual representation of token i,\n[CLS] is the special symbol for classi\ufb01cation out-\nput, and [SEP] is the special symbol to separate\nnon-consecutive token sequences.\nB\nDetailed Experimental Setup\nB.1\nDetailed Descriptions for the GLUE\nBenchmark Experiments.\nOur\nGLUE",
+      "section_type": "references",
+      "page_numbers": [
+        10,
+        11,
+        12,
+        13,
+        14
+      ],
+      "confidence": 0.6
+    }
+  },
+  "abstract_summary": "a new language representa tion is introduced , which stands for declarative language . <n> it is a powerful tool to answer questions empirically , as well as to obtain powerful new state- of - the - art architectures for wide range of tasks , without task - specific architecture modifications .",
+  "introduction_summary": "the aim of this paper is to introduce a model of language representation in which token representations are produced by trained language models . <n> this model is to be used in two ways : ( 1 ) as an alternative to the existing models that use , for example , fine- and/or stream-based representations ; and ( 2 ) to achieve state- and language-specific tasks . in this paper <n> , we introduce the first method , which we call state- or stream- based representation- ( sdrs ) , and we demonstrate its application in two language processing tasks : one is a natural language processing task and the other is a computer aided design ( cad",
+  "methods_summary": null,
+  "results_summary": "we present a method for high - accuracy fine - tuning of a model - based task . <n> our method consists of two steps : ( i ) introduction of in this paper , we introduce a new method for inference of sentence- and/or sentence - predicate interactions .",
+  "discussion_summary": null,
+  "conclusion_summary": "transfer learning with language models has demonstrated that unsupervised pretraining is an integral part of many language understanding systems . <n> these results enable even low- to benefit from deep architec- tures , and major contribution is further to generalizing these bidirectional tasks , allowing same pre-trained model to sucfully tackle a broad set of tasks .",
+  "key_concepts": [
+    {
+      "term": "language",
+      "definition": "We introduce a new language representa-\ntion model called BERT, which stands for\nBidirectional Encoder Representations from\nTransformers.",
+      "importance_score": 1.0,
+      "source_sections": [
+        "abstract",
+        "conclusion",
+        "introduction",
+        "results"
+      ],
+      "context": "We introduce a new language representa-\ntion model called BERT, which stands for\nBidirectional Encoder Representations from\nTransformers."
+    },
+    {
+      "term": "pre",
+      "definition": "We introduce a new language representa-\ntion model called BERT, which stands for\nBidirectional Encoder Representations from\nTransformers.",
+      "importance_score": 1.0,
+      "source_sections": [
+        "abstract",
+        "conclusion",
+        "introduction",
+        "results"
+      ],
+      "context": "We introduce a new language representa-\ntion model called BERT, which stands for\nBidirectional Encoder Representations from\nTransformers."
+    },
+    {
+      "term": "tasks",
+      "definition": "As a re-\nsult, the pre-trained BERT model can be \ufb01ne-\ntuned with just one additional output layer\nto create state-of-the-art models for a wide\nrange of tasks, such as question answering and\nlanguage inference, without substantial task-\nspeci\ufb01c architecture modi\ufb01cations.",
+      "importance_score": 1.0,
+      "source_sections": [
+        "abstract",
+        "conclusion",
+        "introduction",
+        "results"
+      ],
+      "context": "As a re-\nsult, the pre-trained BERT model can be \ufb01ne-\ntuned with just one additional output layer\nto create state-of-the-art models for a wide\nrange of tasks, such as question answering and\nlanguage inference, without substantial task-\nspeci\ufb01c architecture modi\ufb01cations."
+    },
+    {
+      "term": "\ufb01ne",
+      "definition": "As a re-\nsult, the pre-trained BERT model can be \ufb01ne-\ntuned with just one additional output layer\nto create state-of-the-art models for a wide\nrange of tasks, such as question answering and\nlanguage inference, without substantial task-\nspeci\ufb01c architecture modi\ufb01cations.",
+      "importance_score": 0.95,
+      "source_sections": [
+        "abstract",
+        "introduction",
+        "results"
+      ],
+      "context": "As a re-\nsult, the pre-trained BERT model can be \ufb01ne-\ntuned with just one additional output layer\nto create state-of-the-art models for a wide\nrange of tasks, such as question answering and\nlanguage inference, without substantial task-\nspeci\ufb01c architecture modi\ufb01cations."
+    },
+    {
+      "term": "bert",
+      "definition": "We introduce a new language representa-\ntion model called BERT, which stands for\nBidirectional Encoder Representations from\nTransformers.",
+      "importance_score": 1.0,
+      "source_sections": [
+        "abstract",
+        "introduction",
+        "results"
+      ],
+      "context": "We introduce a new language representa-\ntion model called BERT, which stands for\nBidirectional Encoder Representations from\nTransformers."
+    },
+    {
+      "term": "model",
+      "definition": "We introduce a new language representa-\ntion model called BERT, which stands for\nBidirectional Encoder Representations from\nTransformers.",
+      "importance_score": 1.0,
+      "source_sections": [
+        "abstract",
+        "conclusion",
+        "introduction",
+        "results"
+      ],
+      "context": "We introduce a new language representa-\ntion model called BERT, which stands for\nBidirectional Encoder Representations from\nTransformers."
+    },
+    {
+      "term": "trained",
+      "definition": "As a re-\nsult, the pre-trained BERT model can be \ufb01ne-\ntuned with just one additional output layer\nto create state-of-the-art models for a wide\nrange of tasks, such as question answering and\nlanguage inference, without substantial task-\nspeci\ufb01c architecture modi\ufb01cations.",
+      "importance_score": 1.0,
+      "source_sections": [
+        "abstract",
+        "conclusion",
+        "introduction",
+        "results"
+      ],
+      "context": "As a re-\nsult, the pre-trained BERT model can be \ufb01ne-\ntuned with just one additional output layer\nto create state-of-the-art models for a wide\nrange of tasks, such as question answering and\nlanguage inference, without substantial task-\nspeci\ufb01c architecture modi\ufb01cations."
+    },
+    {
+      "term": "glue",
+      "definition": "It obtains new state-of-the-art re-\nsults on eleven natural language processing\ntasks, including pushing the GLUE score to\n80.5% (7.7% point absolute improvement),\nMultiNLI accuracy to 86.7% (4.6% absolute\nimprovement), SQuAD v1.1 question answer-\ning Test F1 to 93.2 (1.5 point absolute im-\nprovement) and SQuAD v2.0 Test F1 to 83.1\n(5.1 point absolute improvement).",
+      "importance_score": 0.53,
+      "source_sections": [
+        "abstract",
+        "results"
+      ],
+      "context": "It obtains new state-of-the-art re-\nsults on eleven natural language processing\ntasks, including pushing the GLUE score to\n80.5% (7.7% point absolute improvement),\nMultiNLI accuracy to 86.7% (4.6% absolute\nimprovement), SQuAD v1.1 question answer-\ning Test F1 to 93.2 (1.5 point absolute im-\nprovement) and SQuAD v2.0 Test F1 to 83.1\n(5.1 point absolute improvement)."
+    },
+    {
+      "term": "al",
+      "definition": "We introduce a new language representa-\ntion model called BERT, which stands for\nBidirectional Encoder Representations from\nTransformers.",
+      "importance_score": 1.0,
+      "source_sections": [
+        "abstract",
+        "conclusion",
+        "introduction",
+        "results"
+      ],
+      "context": "We introduce a new language representa-\ntion model called BERT, which stands for\nBidirectional Encoder Representations from\nTransformers."
+    },
+    {
+      "term": "tuning",
+      "definition": "There are two existing strategies for apply-\ning pre-trained language representations to down-\nstream tasks: feature-based and \ufb01ne-tuning.",
+      "importance_score": 0.77,
+      "source_sections": [
+        "introduction",
+        "results"
+      ],
+      "context": "There are two existing strategies for apply-\ning pre-trained language representations to down-\nstream tasks: feature-based and \ufb01ne-tuning."
+    }
+  ],
+  "keywords": [
+    "language",
+    "pre",
+    "tasks",
+    "\ufb01ne",
+    "bert",
+    "model",
+    "trained",
+    "glue",
+    "al",
+    "tuning",
+    "et",
+    "et al",
+    "\ufb01ne tuning",
+    "task",
+    "training"
+  ],
+  "full_summary": "in this paper , we propose a new model , which stands for the use of pre- and post - existing tokens . the model is designed to perform bidirectional processing tasks in we present a benchmark on fine- and pre- trained model representation and learning . we show that the benchmark can be used to improve the performance of other models in the literature .",
+  "significance": "in this paper , we introduce a new language model called , which stands for right - sided representation of context . <n> the model is designed to perform bidirectional processing tasks in which context - encoded models are used , and to answer such tasks by pre - trained models . we present a model for unsupervised language learning that uses a shallow concatenation of left- to- right and right- to left token representations ."
+}
+BERT_analysis.json
+Displaying BERT_analysis.json.

@@ -1,0 +1,3148 @@
+3 Experiments 3.1 Pretraining and Implementation Following BERT [10], we use the BooksCorpus [40] and English Wikipedia as part of our pretraining data (13 GB total), plus Giga5 (16 GB) [26], ClueWeb 2012-B and Common Crawl (filtered to 19 GB and 110 GB respectively), yielding 32.89 B SentencePiece subwords; XLNet-Large matches BERT-Large hyperparameters and trains with sequence length 512—first on wiki+books (XLNet-Large-wikibooks), then on all data for 500 K steps on 512 TPU v3 chips (batch 8192 over ~5.5 days), still underfitting; finally, we perform an ablation study on XLNet-Base-wikibooks. We employ a bidirectional data pipeline (half batch forward/backward), set K=6 for partial prediction, follow BERT [10] finetuning (span-based prediction with L∈[1–5] spans in KL context), and evaluate on various NLU datasets (details in App A.3). 3.2 Fair Comparison with BERT Here we compare BERT-Large (best of 3 variants) and XLNet-Large-wikibooks trained on the same data and hyperparameters; XLNet outperforms BERT by a sizable margin across SQuAD1.1/2.0, RACE, MNLI, QNLI, QQP, RTE, SST-2, MRPC, CoLA and STS-B. 3.3 Comparison with RoBERTa: Scaling Up Using full data and RoBERTa hyperparameters, XLNet (24-layer) surpasses RoBERTa on RACE (85.4/88.6/84.0 vs 83.2/86.5/81.8) and ClueWeb09-B (NDCG@20 31.10 vs 30.53; ERR@20 20.28 vs 18.67), as well as on SQuAD, text classification (IMDB, Yelp-2/5, DBpedia, Amazon-2/5) and GLUE. Moreover, XLNet’s gains are larger on longer-context reasoning tasks (SQuAD, RACE) and still substantial on large-data classification tasks (MNLI, Yelp, Amazon). 3.4 Ablation Study We ablate BERT-Base, DAE+Transformer-XL, and six XLNet-Base variants (K=7/6; –memory; –span-pred; –bidirectional data; +NSP) on RACE, SQuAD2.0, MNLI and SST-2 (12-layer, wiki+books) and find that both permutation LM and Transformer-XL backbone are critical, memory caching benefits long context, span-based prediction and bidirectional pipeline each help, and next-sentence prediction.With these purposes in mind, we compare BERT-Base (row 1), a Transformer-XL + DAE baseline (row 2), and six XLNet-Base variants (rows 3–8) on RACE, SQuAD2.0, MNLI, and SST-2—each model is a 12-layer architecture (same as BERT-Base), trained on Wikipedia + BooksCorpus, with results as the median of five runs—and we observe that Transformer-XL and the permutation LM both boost performance over BERT, removing memory hurts long-context tasks (row 5), span-based prediction (row 6) and the bidirectional input pipeline (row 7) each add gains, and next-sentence prediction (row 8) does not improve XLNet.
+2.1 Background: We first review conventional AR language modeling, which maximizes ∑_{t=1}^T log p_θ(x_t | x_{<t}) under forward factorization with context representations h_θ(x_{1:t−1}) and embeddings e(x), versus BERT’s denoising autoencoding objective max_θ∑_{t=1}^T m_t log p_θ(x_t | x̂) with corrupted input x̂ and hidden representations H_θ(x̂)_t, discussing (1) independence assumptions, (2) input noise, and (3) context dependency. 2.2 Objective: Permutation Language Modeling: Borrowing from orderless NADE, we maximize E_{z∼Z_T}[∑_{t=1}^T log p_θ(x_{z_t} | x_{z_{<t}})], combining AR benefits with bidirectional context. 2.3 Architecture: Two-Stream Self-Attention: We introduce content stream h_θ and query stream g_θ for target-aware representations, performing content-stream self-attention over h_θ(x_{z≤t}) and query-stream self-attention over g_θ(x_{z< t}, z_t) with proper masking so query never sees its own content. 2.4 Incorporating Transformer-XL: We integrate relative positional encodings and the segment recurrence mechanism to reuse hidden states across segments. 2.5 Modeling Multiple Segments: For multi-segment inputs ([CLS, A, SEP, B, SEP]), we randomly sample segment pairs, apply relative segment encodings s⁺/s⁻ to distinguish same-segment vs cross-segment positions, and perform permutation language modeling over the concatenated sequence.
+Data
+R-1
+R-2
+R-L
+Pointer Generator
+36.3
+16.2
+33.4
++ Length Penalty
+38.0
+16.8
+35.0
++ Coverage Penalty
+38.9
+17.2
+35.9
++ Trigram Repeat
+39.1
+17.4
+36.1
+Table 6: Results on CNN-DM when adding one infer-
+ence penalty at a time.
+In this section, we brieﬂy introduce atrous convolution [69,70,8,71,42] and depth-
+wise separable convolution [27,28,67,26,29].
+We then review DeepLabv3 [23]
+which is used as our encoder module before discussing the proposed decoder
+module appended to the encoder output.
+We also present a modiﬁed Xception
+model [26,31] which further improves the performance with faster computation.
+3.1
+Encoder-Decoder with Atrous Convolution
+Atrous convolution: Atrous convolution, a powerful tool that allows us to ex-
+plicitly control the resolution of features computed by deep convolutional neural
+networks and adjust ﬁlter’s ﬁeld-of-view in order to capture multi-scale informa-
+tion, generalizes standard convolution operation.
+In the case of two-dimensional
+signals, for each location i on the output feature map y and a convolution ﬁlter
+w, atrous convolution is applied over the input feature map x as follows:
+DeepLabv3+: Encoder-Decoder with Atrous Separable Convolution
+5
+(a) Depthwise conv.
+(b) Pointwise conv.
+(c) Atrous depthwise conv.
+Fig.
+3.
+3 × 3 Depthwise separable convolution decomposes a standard convolution into
+(a) a depthwise convolution (applying a single ﬁlter for each input channel) and (b) a
+pointwise convolution (combining the outputs from depthwise convolution across chan-
+nels).
+In this work, we explore atrous separable convolution where atrous convolution
+is adopted in the depthwise convolution, as shown in (c) with rate = 2.
+y[i] =
+X
+k
+x[i + r · k]w[k]
+(1)
+where the atrous rate r determines the stride with which we sample the input
+signal.
+We refer interested readers to [39] for more details.
+Note that standard
+convolution is a special case in which rate r = 1.
+The ﬁlter’s ﬁeld-of-view is
+adaptively modiﬁed by changing the rate value.
+Depthwise separable convolution: Depthwise separable convolution, fac-
+torizing a standard convolution into a depthwise convolution followed by a point-
+wise convolution (i.e., 1 × 1 convolution), drastically reduces computation com-
+plexity.
+Speciﬁcally, the depthwise convolution performs a spatial convolution
+independently for each input channel, while the pointwise convolution is em-
+ployed to combine the output from the depthwise convolution.
+In the TensorFlow
+[72] implementation of depthwise separable convolution, atrous convolution has
+been supported in the depthwise convolution (i.e., the spatial convolution), as
+illustrated in Fig.
+3.
+In this work, we refer the resulting convolution as atrous
+separable convolution, and found that atrous separable convolution signiﬁcantly
+reduces the computation complexity of proposed model while maintaining simi-
+lar (or better) performance.
+DeepLabv3 as encoder: DeepLabv3 [23] employs atrous convolution [69,70,8,71]
+to extract the features computed by deep convolutional neural networks at an
+arbitrary resolution.
+Here, we denote output stride as the ratio of input image
+spatial resolution to the ﬁnal output resolution (before global pooling or fully-
+connected layer).
+For the task of image classiﬁcation, the spatial resolution of the
+ﬁnal feature maps is usually 32 times smaller than the input image resolution and
+thus output stride = 32.
+For the task of semantic segmentation, one can adopt
+output stride = 16 (or 8) for denser feature extraction by removing the striding
+in the last one (or two) block(s) and applying the atrous convolution correspond-
+ingly (e.g., we apply rate = 2 and rate = 4 to the last two blocks respectively
+for output stride = 8).
+Additionally, DeepLabv3 augments the Atrous Spatial
+Pyramid Pooling module, which probes convolutional features at multiple scales
+by applying atrous convolution with diﬀerent rates, with the image-level fea-
+6
+L.-C Chen, Y.
+Zhu, G.
+Papandreou, F.
+Schroﬀ, and H.
+Adam
+tures [52].
+We use the last feature map before logits in the original DeepLabv3
+as the encoder output in our proposed encoder-decoder structure.
+Note the en-
+coder output feature map contains 256 channels and rich semantic information.
+Besides, one could extract features at an arbitrary resolution by applying the
+atrous convolution, depending on the computation budget.
+Proposed decoder: The encoder features from DeepLabv3 are usually com-
+puted with output stride = 16.
+In the work of [23], the features are bilinearly
+upsampled by a factor of 16, which could be considered a naive decoder module.
+However, this naive decoder module may not successfully recover object seg-
+mentation details.
+We thus propose a simple yet eﬀective decoder module, as
+illustrated in Fig.
+2.
+The encoder features are ﬁrst bilinearly upsampled by a
+factor of 4 and then concatenated with the corresponding low-level features [73]
+from the network backbone that have the same spatial resolution (e.g., Conv2
+before striding in ResNet-101 [25]).
+We apply another 1 × 1 convolution on the
+low-level features to reduce the number of channels, since the corresponding low-
+level features usually contain a large number of channels (e.g., 256 or 512) which
+may outweigh the importance of the rich encoder features (only 256 channels in
+our model) and make the training harder.
+After the concatenation, we apply a
+few 3 × 3 convolutions to reﬁne the features followed by another simple bilinear
+upsampling by a factor of 4.
+We show in Sec.
+4 that using output stride = 16
+for the encoder module strikes the best trade-oﬀbetween speed and accuracy.
+The performance is marginally improved when using output stride = 8 for the
+encoder module at the cost of extra computation complexity.
+3.2
+Modiﬁed Aligned Xception
+The Xception model [26] has shown promising image classiﬁcation results on Im-
+ageNet [74] with fast computation.
+More recently, the MSRA team [31] modiﬁes
+the Xception model (called Aligned Xception) and further pushes the perfor-
+mance in the task of object detection.
+Motivated by these ﬁndings, we work in
+the same direction to adapt the Xception model for the task of semantic image
+segmentation.
+In particular, we make a few more changes on top of MSRA’s
+modiﬁcations, namely (1) deeper Xception same as in [31] except that we do
+not modify the entry ﬂow network structure for fast computation and memory
+eﬃciency, (2) all max pooling operations are replaced by depthwise separable
+convolution with striding, which enables us to apply atrous separable convolu-
+tion to extract feature maps at an arbitrary resolution (another option is to
+extend the atrous algorithm to max pooling operations), and (3) extra batch
+normalization [75] and ReLU activation are added after each 3 × 3 depthwise
+convolution, similar to MobileNet design [29].
+See Fig.
+4 for details.
+4
+Experimental Evaluation
+We employ ImageNet-1k [74] pretrained ResNet-101 [25] or modiﬁed aligned
+Xception [26,31] to extract dense feature maps by atrous convolution.
+Our im-
+plementation is built on TensorFlow [72] and is made publicly available.
+DeepLabv3+: Encoder-Decoder with Atrous Separable Convolution
+7
+Conv 32, 3x3, stride 2
+Conv 64, 3x3
+Sep Conv 128, 3x3
+Sep Conv 128, 3x3
+Sep Conv 128, 3x3, stride 2
+Conv 128, 1x1
+Stride 2
++
+Sep Conv 256, 3x3
+Sep Conv 256, 3x3
+Sep Conv 256, 3x3, stride 2
+Conv 256, 1x1
+Stride 2
++
+Sep Conv 728, 3x3
+Sep Conv 728, 3x3
+Sep Conv 728, 3x3, stride 2
+Conv 728, 1x1
+Stride 2
++
+Images
+Entry  flow
+Sep Conv 728, 3x3
+Sep Conv 728, 3x3
+Sep Conv 728, 3x3
++
+Middle  flow
+Repeat 16 times
+Sep Conv 728, 3x3
+Sep Conv 1024, 3x3
+Sep Conv 1024, 3x3, stride 2
+Conv 1024, 1x1
+Stride 2
++
+Sep Conv 1536, 3x3
+Sep Conv 1536, 3x3
+Sep Conv 2048, 3x3
+Exit  flow
+Fig.
+4.
+We modify the Xception as follows: (1) more layers (same as MSRA’s modiﬁca-
+tion except the changes in Entry ﬂow), (2) all the max pooling operations are replaced
+by depthwise separable convolutions with striding, and (3) extra batch normalization
+and ReLU are added after each 3 × 3 depthwise convolution, similar to MobileNet.
+The proposed models are evaluated on the PASCAL VOC 2012 semantic
+segmentation benchmark [1] which contains 20 foreground object classes and one
+background class.
+The original dataset contains 1, 464 (train), 1, 449 (val), and
+1, 456 (test) pixel-level annotated images.
+We augment the dataset by the extra
+annotations provided by [76], resulting in 10, 582 (trainaug) training images.
+The performance is measured in terms of pixel intersection-over-union averaged
+across the 21 classes (mIOU).
+We follow the same training protocol as in [23] and refer the interested readers
+to [23] for details.
+In short, we employ the same learning rate schedule (i.e.,
+“poly” policy [52] and same initial learning rate 0.007), crop size 513 × 513,
+ﬁne-tuning batch normalization parameters [75] when output stride = 16, and
+random scale data augmentation during training.
+Note that we also include batch
+normalization parameters in the proposed decoder module.
+Our proposed model
+is trained end-to-end without piecewise pretraining of each component.
+8
+L.-C Chen, Y.
+Zhu, G.
+Papandreou, F.
+Schroﬀ, and H.
+Adam
+4.1
+Decoder Design Choices
+We deﬁne “DeepLabv3 feature map” as the last feature map computed by
+DeepLabv3 (i.e., the features containing ASPP features and image-level fea-
+tures), and [k × k, f] as a convolution operation with kernel k × k and f ﬁlters.
+When employing output stride = 16, ResNet-101 based DeepLabv3 [23] bi-
+linearly upsamples the logits by 16 during both training and evaluation.
+This
+simple bilinear upsampling could be considered as a naive decoder design, attain-
+ing the performance of 77.21% [23] on PASCAL VOC 2012 val set and is 1.2%
+better than not using this naive decoder during training (i.e., downsampling
+groundtruth during training).
+To improve over this naive baseline, our proposed
+model “DeepLabv3+” adds the decoder module on top of the encoder output, as
+shown in Fig.
+2.
+In the decoder module, we consider three places for diﬀerent de-
+sign choices, namely (1) the 1×1 convolution used to reduce the channels of the
+low-level feature map from the encoder module, (2) the 3 × 3 convolution used
+to obtain sharper segmentation results, and (3) what encoder low-level features
+should be used.
+To evaluate the eﬀect of the 1 × 1 convolution in the decoder module, we
+employ [3 × 3, 256] and the Conv2 features from ResNet-101 network backbone,
+i.e., the last feature map in res2x residual block (to be concrete, we use the
+feature map before striding).
+As shown in Tab.
+1, reducing the channels of the
+low-level feature map from the encoder module to either 48 or 32 leads to better
+performance.
+We thus adopt [1 × 1, 48] for channel reduction.
+We then design the 3 × 3 convolution structure for the decoder module and
+report the ﬁndings in Tab.
+2.
+We ﬁnd that after concatenating the Conv2 feature
+map (before striding) with DeepLabv3 feature map, it is more eﬀective to employ
+two 3×3 convolution with 256 ﬁlters than using simply one or three convolutions.
+Changing the number of ﬁlters from 256 to 128 or the kernel size from 3 × 3 to
+1×1 degrades performance.
+We also experiment with the case where both Conv2
+and Conv3 feature maps are exploited in the decoder module.
+In this case, the
+decoder feature map are gradually upsampled by 2, concatenated with Conv3
+ﬁrst and then Conv2, and each will be reﬁned by the [3 × 3, 256] operation.
+The
+whole decoding procedure is then similar to the U-Net/SegNet design [21,22].
+However, we have not observed signiﬁcant improvement.
+Thus, in the end, we
+adopt the very simple yet eﬀective decoder module: the concatenation of the
+DeepLabv3 feature map and the channel-reduced Conv2 feature map are reﬁned
+by two [3 × 3, 256] operations.
+Note that our proposed DeepLabv3+ model has
+output stride = 4.
+We do not pursue further denser output feature map (i.e.,
+output stride < 4) given the limited GPU resources.
+4.2
+ResNet-101 as Network Backbone
+To compare the model variants in terms of both accuracy and speed, we report
+mIOU and Multiply-Adds in Tab.
+3 when using ResNet-101 [25] as network
+backbone in the proposed DeepLabv3+ model.
+Thanks to atrous convolution, we
+DeepLabv3+: Encoder-Decoder with Atrous Separable Convolution
+9
+Channels
+8
+16
+32
+48
+64
+mIOU
+77.61% 77.92% 78.16% 78.21% 77.94%
+Table 1.
+PASCAL VOC 2012 val set.
+Eﬀect of decoder 1 × 1 convolution used to
+reduce the channels of low-level feature map from the encoder module.
+We ﬁx the
+other components in the decoder structure as using [3 × 3, 256] and Conv2.
+Features
+3 × 3 Conv
+mIOU
+Conv2 Conv3
+Structure
+✓
+[3 × 3, 256]
+78.21%
+✓
+[3 × 3, 256] × 2 78.85%
+✓
+[3 × 3, 256] × 3 78.02%
+✓
+[3 × 3, 128]
+77.25%
+✓
+[1 × 1, 256]
+78.07%
+✓
+✓
+[3 × 3, 256]
+78.61%
+Table 2.
+Eﬀect of decoder structure when ﬁxing [1 × 1, 48] to reduce the encoder
+feature channels.
+We found that it is most eﬀective to use the Conv2 (before striding)
+feature map and two extra [3 × 3, 256] operations.
+Performance on VOC 2012 val set.
+Encoder
+Decoder MS Flip mIOU Multiply-Adds
+train OS eval OS
+16
+16
+77.21%
+81.02B
+16
+8
+78.51%
+276.18B
+16
+8
+✓
+79.45%
+2435.37B
+16
+8
+✓
+✓
+79.77%
+4870.59B
+16
+16
+✓
+78.85%
+101.28B
+16
+16
+✓
+✓
+80.09%
+898.69B
+16
+16
+✓
+✓
+✓
+80.22%
+1797.23B
+16
+8
+✓
+79.35%
+297.92B
+16
+8
+✓
+✓
+80.43%
+2623.61B
+16
+8
+✓
+✓
+✓
+80.57%
+5247.07B
+32
+32
+75.43%
+52.43B
+32
+32
+✓
+77.37%
+74.20B
+32
+16
+✓
+77.80%
+101.28B
+32
+8
+✓
+77.92%
+297.92B
+Table 3.
+Inference strategy on the PASCAL VOC 2012 val set using ResNet-101.
+train OS: The output stride used during training.
+eval OS: The output stride used
+during evaluation.
+Decoder: Employing the proposed decoder structure.
+MS: Multi-
+scale inputs during evaluation.
+Flip: Adding left-right ﬂipped inputs.
+are able to obtain features at diﬀerent resolutions during training and evaluation
+using a single model.
+10
+L.-C Chen, Y.
+Zhu, G.
+Papandreou, F.
+Schroﬀ, and H.
+Adam
+Model
+Top-1 Error Top-5 Error
+Reproduced ResNet-101
+22.40%
+6.02%
+Modiﬁed Xception
+20.19%
+5.17%
+Table 4.
+Single-model error rates on ImageNet-1K validation set.
+Baseline: The ﬁrst row block in Tab.
+3 contains the results from [23] showing
+that extracting denser feature maps during evaluation (i.e., eval output stride =
+8) and adopting multi-scale inputs increases performance.
+Besides, adding left-
+right ﬂipped inputs doubles the computation complexity with only marginal
+performance improvement.
+Adding decoder: The second row block in Tab.
+3 contains the results when
+adopting the proposed decoder structure.
+The performance is improved from
+77.21% to 78.85% or 78.51% to 79.35% when using eval output stride = 16 or 8,
+respectively, at the cost of about 20B extra computation overhead.
+The perfor-
+mance is further improved when using multi-scale and left-right ﬂipped inputs.
+Coarser feature maps: We also experiment with the case when using
+train output stride = 32 (i.e., no atrous convolution at all during training) for
+fast computation.
+As shown in the third row block in Tab.
+3, adding the decoder
+brings about 2% improvement while only 74.20B Multiply-Adds are required.
+However, the performance is always about 1% to 1.5% below the case in which
+we employ train output stride = 16 and diﬀerent eval output stride values.
+We
+thus prefer using output stride = 16 or 8 during training or evaluation depending
+on the complexity budget.
+4.3
+Xception as Network Backbone
+We further employ the more powerful Xception [26] as network backbone.
+Fol-
+lowing [31], we make a few more changes, as described in Sec.
+3.2.
+ImageNet pretraining: The proposed Xception network is pretrained on
+ImageNet-1k dataset [74] with similar training protocol in [26].
+Speciﬁcally, we
+adopt Nesterov momentum optimizer with momentum = 0.9, initial learning
+rate = 0.05, rate decay = 0.94 every 2 epochs, and weight decay 4e −5.
+We
+use asynchronous training with 50 GPUs and each GPU has batch size 32 with
+image size 299×299.
+We did not tune the hyper-parameters very hard as the goal
+is to pretrain the model on ImageNet for semantic segmentation.
+We report the
+single-model error rates on the validation set in Tab.
+4 along with the baseline
+reproduced ResNet-101 [25] under the same training protocol.
+We have observed
+0.75% and 0.29% performance degradation for Top1 and Top5 accuracy when
+not adding the extra batch normalization and ReLU after each 3 × 3 depthwise
+convolution in the modiﬁed Xception.
+The results of using the proposed Xception as network backbone for semantic
+segmentation are reported in Tab.
+5.
+Baseline: We ﬁrst report the results without using the proposed decoder in
+the ﬁrst row block in Tab.
+5, which shows that employing Xception as network
+DeepLabv3+: Encoder-Decoder with Atrous Separable Convolution
+11
+backbone improves the performance by about 2% when train output stride =
+eval output stride = 16 over the case where ResNet-101 is used.
+Further im-
+provement can also be obtained by using eval output stride = 8, multi-scale
+inputs during inference and adding left-right ﬂipped inputs.
+Note that we do not
+employ the multi-grid method [77,78,23], which we found does not improve the
+performance.
+Adding decoder: As shown in the second row block in Tab.
+5, adding
+decoder brings about 0.8% improvement when using eval output stride = 16 for
+all the diﬀerent inference strategies.
+The improvement becomes less when using
+eval output stride = 8.
+Using depthwise separable convolution: Motivated by the eﬃcient com-
+putation of depthwise separable convolution, we further adopt it in the ASPP
+and the decoder modules.
+As shown in the third row block in Tab.
+5, the com-
+putation complexity in terms of Multiply-Adds is signiﬁcantly reduced by 33%
+to 41%, while similar mIOU performance is obtained.
+Pretraining on COCO: For comparison with other state-of-art models, we
+further pretrain our proposed DeepLabv3+ model on MS-COCO dataset [79],
+which yields about extra 2% improvement for all diﬀerent inference strategies.
+Pretraining on JFT: Similar to [23], we also employ the proposed Xception
+model that has been pretrained on both ImageNet-1k [74] and JFT-300M dataset
+[80,26,81], which brings extra 0.8% to 1% improvement.
+Test set results: Since the computation complexity is not considered in the
+benchmark evaluation, we thus opt for the best performance model and train it
+with output stride = 8 and frozen batch normalization parameters.
+In the end,
+our ‘DeepLabv3+’ achieves the performance of 87.8% and 89.0% without and
+with JFT dataset pretraining.
+Qualitative results: We provide visual results of our best model in Fig.
+6.
+As shown in the ﬁgure, our model is able to segment objects very well without
+any post-processing.
+Failure mode: As shown in the last row of Fig.
+6, our model has diﬃculty
+in segmenting (a) sofa vs.
+chair, (b) heavily occluded objects, and (c) objects
+with rare view.
+4.4
+Improvement along Object Boundaries
+In this subsection, we evaluate the segmentation accuracy with the trimap exper-
+iment [14,40,39] to quantify the accuracy of the proposed decoder module near
+object boundaries.
+Speciﬁcally, we apply the morphological dilation on ‘void’ la-
+bel annotations on val set, which typically occurs around object boundaries.
+We
+then compute the mean IOU for those pixels that are within the dilated band
+(called trimap) of ‘void’ labels.
+As shown in Fig.
+5 (a), employing the proposed
+decoder for both ResNet-101 [25] and Xception [26] network backbones improves
+the performance compared to the naive bilinear upsampling.
+The improvement
+is more signiﬁcant when the dilated band is narrow.
+We have observed 4.8%
+and 5.4% mIOU improvement for ResNet-101 and Xception respectively at the
+12
+L.-C Chen, Y.
+Zhu, G.
+Papandreou, F.
+Schroﬀ, and H.
+Adam
+Encoder
+Decoder MS Flip SC COCO JFT mIOU Multiply-Adds
+train OS eval OS
+16
+16
+79.17%
+68.00B
+16
+16
+✓
+80.57%
+601.74B
+16
+16
+✓
+✓
+80.79%
+1203.34B
+16
+8
+79.64%
+240.85B
+16
+8
+✓
+81.15%
+2149.91B
+16
+8
+✓
+✓
+81.34%
+4299.68B
+16
+16
+✓
+79.93%
+89.76B
+16
+16
+✓
+✓
+81.38%
+790.12B
+16
+16
+✓
+✓
+✓
+81.44%
+1580.10B
+16
+8
+✓
+80.22%
+262.59B
+16
+8
+✓
+✓
+81.60%
+2338.15B
+16
+8
+✓
+✓
+✓
+81.63%
+4676.16B
+16
+16
+✓
+✓
+79.79%
+54.17B
+16
+16
+✓
+✓
+✓
+✓
+81.21%
+928.81B
+16
+8
+✓
+✓
+80.02%
+177.10B
+16
+8
+✓
+✓
+✓
+✓
+81.39%
+3055.35B
+16
+16
+✓
+✓
+✓
+82.20%
+54.17B
+16
+16
+✓
+✓
+✓
+✓
+✓
+83.34%
+928.81B
+16
+8
+✓
+✓
+✓
+82.45%
+177.10B
+16
+8
+✓
+✓
+✓
+✓
+✓
+83.58%
+3055.35B
+16
+16
+✓
+✓
+✓
+✓
+83.03%
+54.17B
+16
+16
+✓
+✓
+✓
+✓
+✓
+✓
+84.22%
+928.81B
+16
+8
+✓
+✓
+✓
+✓
+83.39%
+177.10B
+16
+8
+✓
+✓
+✓
+✓
+✓
+✓
+84.56%
+3055.35B
+Table 5.
+Inference strategy on the PASCAL VOC 2012 val set when using mod-
+iﬁed Xception.
+train OS: The output stride used during training.
+eval OS: The
+output stride used during evaluation.
+Decoder: Employing the proposed decoder struc-
+ture.
+MS: Multi-scale inputs during evaluation.
+Flip: Adding left-right ﬂipped inputs.
+SC: Adopting depthwise separable convolution for both ASPP and decoder modules.
+COCO: Models pretrained on MS-COCO.
+JFT: Models pretrained on JFT.
+smallest trimap width as shown in the ﬁgure.
+We also visualize the eﬀect of
+employing the proposed decoder in Fig.
+5 (b).
+4.5
+Experimental Results on Cityscapes
+In this section, we experiment DeepLabv3+ on the Cityscapes dataset [3], a
+large-scale dataset containing high quality pixel-level annotations of 5000 images
+(2975, 500, and 1525 for the training, validation, and test sets respectively) and
+about 20000 coarsely annotated images.
+As shown in Tab.
+7 (a), employing the proposed Xception model as network
+backbone (denoted as X-65) on top of DeepLabv3 [23], which includes the ASPP
+DeepLabv3+: Encoder-Decoder with Atrous Separable Convolution
+13
+Method
+mIOU
+Deep Layer Cascade (LC) [82]
+82.7
+TuSimple [77]
+83.1
+Large Kernel Matters [60]
+83.6
+Multipath-ReﬁneNet [58]
+84.2
+ResNet-38 MS COCO [83]
+84.9
+PSPNet [24]
+85.4
+IDW-CNN [84]
+86.3
+CASIA IVA SDN [63]
+86.6
+DIS [85]
+86.8
+DeepLabv3 [23]
+85.7
+DeepLabv3-JFT [23]
+86.9
+DeepLabv3+ (Xception)
+87.8
+DeepLabv3+ (Xception-JFT)
+89.0
+Table 6.
+PASCAL VOC 2012 test set results with top-performing models.
+0
+10
+20
+30
+40
+50
+60
+70
+80
+mean IOU (%)
+Trimap Width (pixels)
+ 
+ 
+Xception w/ Decoder
+ResNet−101 w/ Decoder
+Xception w/ BU
+ResNet−101 w/ BU
+Image
+w/ BU
+w/ Decoder
+(a) mIOU vs.
+Trimap width
+(b) Decoder eﬀect
+Fig.
+5.
+(a) mIOU as a function of trimap band width around the object boundaries
+when employing train output stride = eval output stride = 16.
+BU: Bilinear upsam-
+pling.
+(b) Qualitative eﬀect of employing the proposed decoder module compared with
+the naive bilinear upsampling (denoted as BU).
+In the examples, we adopt Xception
+as feature extractor and train output stride = eval output stride = 16.
+module and image-level features [52], attains the performance of 77.33% on the
+validation set.
+Adding the proposed decoder module signiﬁcantly improves the
+performance to 78.79% (1.46% improvement).
+We notice that removing the aug-
+mented image-level feature improves the performance to 79.14%, showing that
+in DeepLab model, the image-level features are more eﬀective on the PASCAL
+VOC 2012 dataset.
+We also discover that on the Cityscapes dataset, it is eﬀec-
+tive to increase more layers in the entry ﬂow in the Xception [26], the same as
+what [31] did for the object detection task.
+The resulting model building on top
+of the deeper network backbone (denoted as X-71 in the table), attains the best
+performance of 79.55% on the validation set.
+After ﬁnding the best model variant on val set, we then further ﬁne-tune
+the model on the coarse annotations in order to compete with other state-of-art
+14
+L.-C Chen, Y.
+Zhu, G.
+Papandreou, F.
+Schroﬀ, and H.
+Adam
+Fig.
+6.
+Visualization results on val set.
+The last row shows a failure mode.
+Backbone Decoder ASPP Image-Level mIOU
+X-65
+✓
+✓
+77.33
+X-65
+✓
+✓
+✓
+78.79
+X-65
+✓
+✓
+79.14
+X-71
+✓
+✓
+79.55
+Method
+Coarse
+mIOU
+ResNet-38 [83]
+✓
+80.6
+PSPNet [24]
+✓
+81.2
+Mapillary [86]
+✓
+82.0
+DeepLabv3
+✓
+81.3
+DeepLabv3+
+✓
+82.1
+(a) val set results
+(b) test set results
+Table 7.
+(a) DeepLabv3+ on the Cityscapes val set when trained with train ﬁne set.
+(b) DeepLabv3+ on Cityscapes test set.
+Coarse: Use train extra set (coarse annota-
+tions) as well.
+Only a few top models are listed in this table.
+models.
+As shown in Tab.
+7 (b), our proposed DeepLabv3+ attains a performance
+of 82.1% on the test set, setting a new state-of-art performance on Cityscapes.
+For the proposed parameter assignment strategies,
+we fixed M = 6 and set N = 12, 18 based on
+the Vanilla configuration below.
+We compare the
+proposed strategies with the following baselines.
+Vanilla: This is the original Transformer (base)
+setting in (Vaswani et al., 2017).
+To stabilize the
+training, we applied Admin (Liu et al., 2020).
+See
+Section 5 for more details of Admin.
+Universal:
+As the parameter sharing strategy
+in previous studies such as Universal Transform-
+ers (Dehghani et al., 2019), we set M = 13.
+In
+this setting, we increased the dimensions of each
+layer for a fair comparison in terms of the num-
+ber of parameters.
+This configuration corresponds
+to the Universal Transformer base setting in (De-
+hghani et al., 2019).
+Moreover, we prepared the
+model using twice as many layers to investigate the
+effect of stacking many layers in Universal Trans-
+formers.
+We call this setting Universal (deep).
+In
+addition, we prepared Universal (small) whose
+dimension sizes are the identical to ones of Trans-
+former (base).
+Furthermore, we prepare two models that consist
+of a large number of parameters for reference.
+Vanilla (big): This is the original Transformer (big)
+setting in (Vaswani et al., 2017).
+Vanilla (deep): We stacked layers until N = 18 in
+the Vanilla configuration.
+2The BLEU score computed by SacreBLEU is often lower
+than the score obtained by the procedure of Vaswani et al.
+(2017) as reported in Ott et al.
+(2018).
+In fact, when we used
+the same procedure as Vaswani et al.
+(2017), SEQUENCE of
+M = 6, N = 12 in Table 1 achieved 29.40 in the averaged
+BLEU score in newstest2014 and the best model in Table 2
+achieved 35.14 in the averaged BLEU score in newstest2014.
+However, since Post (2018) encouraged using SacreBLEU for
+the compatibility of WMT results, we used SacreBLEU.
+3The original Universal Transformers (Dehghani et al.,
+2019) use the sinusoidal positional encoding for each layer
+and adaptive computation time technique (Graves, 2017) but
+we omitted them in this study to focus on the difference among
+parameter sharing strategies.
+Method
+M
+N
+#Params
+Speed
+2010
+2011
+2012
+2013
+2014
+2015
+2016
+Avg.
+Vanilla
+6
+6
+61M
+×2.02
+24.14
+21.93
+22.25
+26.14
+27.05
+29.59
+34.23
+26.48
+Universal
+1
+6
+63M
+×1.00
+24.37
+22.33
+22.70
+26.40
+27.65
+30.24
+34.60
+26.90
+Universal (deep)
+1
+12
+63M
+×0.52
+24.42
+22.30
+22.61
+26.52
+27.76
+29.75
+34.01
+26.77
+Universal (small)
+1
+6
+24M
+×2.52
+22.89
+21.11
+21.29
+24.75
+24.71
+28.16
+32.81
+25.10
+SEQUENCE
+6
+12
+61M
+×1.31
+24.65
+22.32
+22.83
+26.98
+27.88
+30.27
+34.99
+27.13
+CYCLE
+6
+12
+61M
+×1.31
+24.51
+22.43
+22.69
+26.61
+27.91
+30.37
+34.77
+27.04
+CYCLE (REV)
+6
+12
+61M
+×1.31
+24.66
+22.47
+22.87
+26.68
+27.72
+30.37
+34.81
+27.08
+SEQUENCE
+6
+18
+61M
+×0.98
+24.53
+22.44
+22.73
+26.59
+27.73
+30.30
+34.80
+27.02
+CYCLE
+6
+18
+61M
+×0.98
+24.74
+22.60
+23.04
+26.89
+28.14
+30.54
+34.79
+27.25
+CYCLE (REV)
+6
+18
+61M
+×0.98
+24.93
+22.77
+23.09
+26.88
+28.09
+30.60
+34.84
+27.31
+Methods consisting of a large number of parameters for reference
+Vanilla (big)
+6
+6
+210M
+×0.81
+24.31
+22.21
+22.75
+26.39
+28.28
+30.35
+33.40
+26.81
+Vanilla (deep)
+18
+18
+149M
+×0.96
+24.54
+22.30
+22.75
+26.57
+28.03
+30.24
+34.19
+26.94
+Table 1: The number of layers, number of parameters, computational speeds based on the Universal configuration,
+BLEU scores on newstest2010-2016, and averaged scores when we trained each method on widely used WMT 2016
+English-to-German training dataset.
+Scores in bold denote the best results for each set.
+The results of our proposed
+strategies are statistically significant (p < 0.05) in comparison with Universal.
+The lowest part indicates results of
+methods consisting of a large number of parameters for reference.
+3.1.3
+We used the original Transformer (big) set-
+ting (Vaswani et al., 2017) as our baseline in using
+genuine training data.
+We call this setting Vanilla
+in this experiment.
+Moreover, we also prepared
+Universal, which shares the parameters with all
+layers, namely, M = 1, N = 6.
+We increased the
+dimensions of each layer in Universal to make their
+parameter size almost the same as others.
+For the
+proposed strategies, we used M = 6 and N = 12.
+In using both of the genuine and synthetic (back-
+translated) datasets, we applied CYCLE (REV) to
+the BASE setting in (Kiyono et al., 2020) because
+CYCLE (REV) achieved the best BLEU scores on
+most test sets in Table 1.
+We also used M = 6
+and N = 12 in this configuration.
+We compare the
+reported scores of the best model in (Kiyono et al.,
+2020).
+Their model is composed of 9 layers (i.e.,
+M = 9 and N = 9); thus, it contains considerably
+more parameters than ours.
+3.2.3
+We compare our proposed strategies with baselines
+used in Section 3.1.
+We used the Transformer
+(base) setting with Admin as Vanilla and prepared
+Universal which is M = 1, N = 6 with large
+dimension sizes for each internal layer.
+For the pro-
+posed strategies, we used M = 6 and N = 18.
+In
+these configurations, the training time of proposed
+strategies are almost the same as one of Universal
+as described in Table 1.
+3.3.3
+We also compare our proposed strategies with base-
+lines in Section 3.
+As the base architecture, we
+used Transformer based speech-to-text model (T-
+Md) described in (Wang et al., 2020).
+In contrast
+to the Post-LN architecture, which is the original
+Transformer architecture (Vaswani et al., 2017), the
+Transformer in T-Md consists of the Pre-LN config-
+uration.
+We prepared 6 layers for the encoder and
+decoder in Vanilla and Universal.
+For proposed
+strategies, we stacked more layers for the encoder
+side in the same as in (Wang et al., 2020).
+We pre-
+pared N = 16 and M = 8 for the encoder side,
+and N = 8 and M = 4 for the decoder side.
+4.3
+We used the Transformer with adaptive in-
+puts (Baevski and Auli, 2019) as the base archi-
+tecture.
+In the same as in Baevski and Auli (2019),
+the Transformer in the language modeling consists
+of the Pre-LN configuration.
+We set N = 6 for
+Vanilla and Universal.
+For the proposed strategies,
+we set N = 12 and M = 6.
+A.3
+For table-to-text generation, we compare preﬁx-
+tuning with three other methods: ﬁne-tuning (FINE-
+TUNE), ﬁne-tuning only the top 2 layers (FT-TOP2),
+and adapter-tuning (ADAPTER).5 We also report
+the current state-of-the-art results on these datasets:
+On E2E, Shen et al.
+(2019) uses a pragmatically
+informed model without pretraining.
+On WebNLG,
+Kale (2020) ﬁne-tunes T5-large.
+On DART, no
+ofﬁcial models trained on this dataset version are
+released.6 For summarization, we compare against
+ﬁne-tuning BART (Lewis et al., 2020).
+5.3
+Architectures and Hyperparameters
+For table-to-text, we use GPT-2MEDIUM and GPT-
+2LARGE; the source tables are linearized.7 For sum-
+marization, we use BARTLARGE,8 and the source
+articles are truncated to 512 BPE tokens.
+Our implementation is based on the Hugging
+Face Transformer models (Wolf et al., 2020).
+At training time, we use the AdamW optimizer
+(Loshchilov and Hutter, 2019) and a linear learn-
+ing rate scheduler, as suggested by the Hugging
+Face default setup.
+The hyperparameters we tune
+include the number of epochs, batch size, learn-
+ing rate, and preﬁx length.
+Hyperparameter details
+are in the appendix.
+A default setting trains for 10
+epochs, using a batch size of 5, a learning rate of
+5 · 10−5 and a preﬁx length of 10.
+The table-to-text
+models are trained on TITAN Xp or GeForce GTX
+TITAN X machines.
+Preﬁx-tuning takes 0.2 hours
+per epochs to train on 22K examples , whereas ﬁne-
+tuning takes around 0.3 hours.
+The summarization
+models are trained on Tesla V100 machines, taking
+1.25h per epoch on the XSUM dataset.
+At decoding time, for the three table-to-text
+datasets, we use beam search with a beam size
+of 5.
+For summarization, we use a beam size of 6
+5Same implementation as Lin et al.
+(2020).
+6The ofﬁcial benchmark model is trained on v.1.0.0 while
+the release dataset is v1.1.1.
+7In comparison with natural language utterances, the lin-
+earized table is in an unnatural format, which might be chal-
+lenging for pretrained LMs.
+8We didn’t include GPT-2 results for summarization be-
+cause in our preliminary experiment, ﬁne-tuning GPT-2 sig-
+niﬁcantly underperforms ﬁne-tuning BART on XSUM.
+and length normalization of 0.8.
+Decoding takes
+1.2 seconds per sentence (without batching) for
+table-to-text, and 2.6 seconds per batch (using a
+batch size of 10) for summarization.
+6
+Main Results
+6.1
+Table-to-text Generation
+We ﬁnd that adding only 0.1% task-speciﬁc param-
+eters,9 preﬁx-tuning is effective in table-to-text gen-
+eration, outperforming other lightweight baselines
+(ADAPTER and FT-TOP2) and achieving a compa-
+rable performance with ﬁne-tuning.
+This trend is
+true across all three datasets: E2E, WebNLG,10 and
+DART.
+For a fair comparison, we match the number of
+parameters for preﬁx-tuning and adapter-tuning to
+be 0.1%.
+Table 1 shows that preﬁx-tuning is sig-
+niﬁcantly better than ADAPTER (0.1%), attaining
+4.1 BLEU improvement per dataset on average.
+Even when we compare with ﬁne-tuning (100%)
+and adapter-tuning (3.0%), which update signiﬁ-
+cantly more parameters than preﬁx-tuning, preﬁx-
+tuning still achieves results comparable or better
+than those two systems.
+This demonstrates that
+preﬁx-tuning is more Pareto efﬁcient than adapter-
+tuning, signiﬁcantly reducing parameters while im-
+proving generation quality.
+Additionally, attaining good performance on
+DART suggests that preﬁx-tuning can generalize
+to tables with diverse domains and a large pool
+of relations.
+We will delve deeper into extrapo-
+lation performance (i.e.
+generalization to unseen
+categories or topics) in §6.4.
+Overall, preﬁx-tuning is an effective and space-
+efﬁcient method to adapt GPT-2 to table-to-text
+generation.
+The learned preﬁx is expressive enough
+to steer GPT-2 in order to correctly extract contents
+from an unnatural format and generate a textual
+description.
+Preﬁx-tuning also scales well from
+GPT-2MEDIUM to GPT-2LARGE, suggesting it has
+the potential to scale to even larger models with a
+similar architecture, like GPT-3.
+6.2
+Summarization
+As shown in Table 2, with 2% parameters, preﬁx-
+tuning obtains slightly lower performance than ﬁne-
+9250K for E2E, 250K for WebNLG, and 500K for DART
+vs.
+345M GPT-2 parameters.
+10The S,U,A columns in WebNLG represents SEEN, UN-
+SEEN, and ALL respectively; SEEN categories appear at
+training time; UNSEEN categories only appears at test time;
+and ALL is the combination of the two.
+tuning (36.05 vs.
+37.25 in ROUGE-L).
+With only
+0.1% parameters, preﬁx-tuning underperforms full
+ﬁne-tuning (35.05 vs.
+37.25).
+There are several
+differences between XSUM and the three table-to-
+text datasets which could account for why preﬁx-
+tuning has comparative advantage in table-to-text:
+(1) XSUM contains 4x more examples than the
+three table-to-text datasets on average; (2) the in-
+put articles are 17x longer than the linearized table
+input of table-to-text datasets on average; (3) sum-
+marization might be more complex than table-to-
+text because it requires reading comprehension and
+identifying key contents from an article.
+6.3
+Low-data Setting
+Based on the results from table-to-text (§6.1)
+and summarization (§6.2), we observe that preﬁx-
+tuning has a comparative advantage when the
+number of training examples is smaller.
+To con-
+struct low-data settings, we subsample the full
+dataset (E2E for table-to-text and XSUM for
+summarization) to obtain small datasets of size
+{50, 100, 200, 500}.
+For each size, we sample 5
+different datasets and average over 2 training ran-
+dom seeds.
+Thus, we average over 10 models to
+get an estimate for each low-data setting.11
+Figure 3 (right) shows that preﬁx-tuning outper-
+forms ﬁne-tuning in low-data regimes by 2.9 BLEU
+on average, in addition to requiring many fewer pa-
+rameters, but the gap narrows as the dataset size
+increases.
+Qualitatively, Figure 3 (left) shows 8 examples
+generated by both preﬁx-tuning and ﬁne-tuning
+models trained on different data levels.
+While both
+methods tend to undergenerate (missing table con-
+tents) in low data regimes, preﬁx-tuning tends to be
+more faithful than ﬁne-tuning.
+For example, ﬁne-
+tuning (100, 200)12 falsely claims a low customer
+rating while the true rating is average, whereas
+preﬁx-tuning (100, 200) generates a description
+that is faithful to the table.
+6.4
+Extrapolation
+We now investigate extrapolation performance to
+unseen topics for both table-to-text and summariza-
+tion.
+In order to construct an extrapolation setting,
+we split the existing datasets so that training and
+test cover different topics.
+For table-to-text, the
+11We also sample a dev split (with dev size = 30% × train-
+ing size ) for each training set.
+We use the dev split to choose
+hyperparameters and do early stopping.
+12The number in the parenthesis refers to the training size.
+E2E
+WebNLG
+DART
+BLEU NIST MET R-L CIDEr
+BLEU
+MET
+TER ↓
+BLEU MET TER ↓Mover BERT BLEURT
+S
+U
+A
+S
+U
+A
+S
+U
+A
+GPT-2MEDIUM
+FINE-TUNE
+68.2
+8.62
+46.2
+71.0
+2.47
+64.2 27.7 46.5 0.45 0.30 0.38 0.33 0.76 0.53
+46.2
+0.39
+0.46
+0.50
+0.94
+0.39
+FT-TOP2
+68.1
+8.59
+46.0
+70.8
+2.41
+53.6 18.9 36.0 0.38 0.23 0.31 0.49 0.99 0.72
+41.0
+0.34
+0.56
+0.43
+0.93
+0.21
+ADAPTER(3%)
+68.9
+8.71
+46.1
+71.3
+2.47
+60.4 48.3 54.9 0.43 0.38 0.41 0.35 0.45 0.39
+45.2
+0.38
+0.46
+0.50
+0.94
+0.39
+ADAPTER(0.1%)
+66.3
+8.41
+45.0
+69.8
+2.40
+54.5 45.1 50.2 0.39 0.36 0.38 0.40 0.46 0.43
+42.4
+0.36
+0.48
+0.47
+0.94
+0.33
+PREFIX(0.1%)
+69.7
+8.81
+46.1
+71.4
+2.49
+62.9 45.6 55.1 0.44 0.38 0.41 0.35 0.49 0.41
+46.4
+0.38
+0.46
+0.50
+0.94
+0.39
+GPT-2LARGE
+FINE-TUNE
+68.5
+8.78
+46.0
+69.9
+2.45
+65.3 43.1 55.5 0.46 0.38 0.42 0.33 0.53 0.42
+47.0
+0.39
+0.46
+0.51
+0.94
+0.40
+Preﬁx
+70.3
+8.85
+46.2
+71.7
+2.47
+63.4 47.7 56.3 0.45 0.39 0.42 0.34 0.48 0.40
+46.7
+0.39
+0.45
+0.51
+0.94
+0.40
+SOTA
+68.6
+8.70
+45.3
+70.8
+2.37
+63.9 52.8 57.1 0.46 0.41 0.44
+-
+-
+-
+-
+-
+-
+-
+-
+-
+Table 1: Metrics (higher is better, except for TER) for table-to-text generation on E2E (left), WebNLG (middle)
+and DART (right).
+With only 0.1% parameters, Preﬁx-tuning outperforms other lightweight baselines and achieves
+a comparable performance with ﬁne-tuning.
+The best score is boldfaced for both GPT-2MEDIUM and GPT-2LARGE.
+Source
+name : The Eagle | type : coffee shop | food : Chinese | price : cheap | customer
+rating : average | area : riverside | family friendly : no | near : Burger King
+Preﬁx (50)
+The Eagle is a cheap Chinese coffee shop located near Burger King.
+Preﬁx (100)
+The Eagle is a cheap coffee shop located in the riverside near Burger King.
+It
+has average customer ratings.
+Preﬁx (200)
+The Eagle is a cheap Chinese coffee shop located in the riverside area near
+Burger King.
+It has average customer ratings.
+Preﬁx (500)
+The Eagle is a coffee shop that serves Chinese food.
+It is located in the riverside
+area near Burger King.
+It has an average customer rating and is not family
+friendly.
+FT (50)
+The Eagle coffee shop is located in the riverside area near Burger King.
+FT (100)
+The Eagle is a cheap coffee shop near Burger King in the riverside area.
+It has
+a low customer rating and is not family friendly.
+FT (200)
+The Eagle is a cheap Chinese coffee shop with a low customer rating.
+It is
+located near Burger King in the riverside area.
+FT (500)
+The Eagle is a cheap Chinese coffee shop with average customer ratings.
+It is
+located in the riverside area near Burger King.
+100
+200
+300
+400
+500
+training_data_size
+32
+34
+36
+rouge-1
+method
+FT
+PT
+100
+200
+300
+400
+500
+training_data_size
+10
+11
+12
+13
+14
+15
+rouge-2
+method
+FT
+PT
+100
+200
+300
+400
+500
+training_data_size
+0.50
+0.55
+0.60
+BLEU
+method
+FT
+PT
+100
+200
+300
+400
+500
+training_data_size
+0.60
+0.62
+0.64
+0.66
+ROUGE
+method
+FT
+PT
+Figure 3: (Left) qualitative examples in lowdata settings.
+(Right) preﬁx-tuning (orange) outperforms ﬁne-tuning
+(blue) in low-data regimes in addition to requiring many fewer parameters.
+The top two plots correspond to sum-
+marization, measured by ROUGE-1 and ROUGE-2.
+The bottom two plots correspond to table-to-text, measured
+by BLEU and ROUGE-L.
+The x-axis is the training size and the y-axis is the evaluation metric (higher is better).
+R-1 ↑
+R-2 ↑
+R-L ↑
+FINE-TUNE(Lewis et al., 2020)
+45.14
+22.27
+37.25
+PREFIX(2%)
+43.80
+20.93
+36.05
+PREFIX(0.1%)
+42.92
+20.03
+35.05
+Table 2: Metrics for summarization on XSUM.
+Preﬁx-
+tuning slightly underperforms ﬁne-tuning.
+WebNLG dataset is labeled with table topics.
+There
+are 9 categories that appear in training and dev, de-
+noted as SEEN and 5 categories that only appear at
+test time, denoted as UNSEEN.
+So we evaluate ex-
+trapolation by training on the SEEN categories and
+testing on the UNSEEN categories.
+For summariza-
+tion, we construct two extrapolation data splits13:
+In news-to-sports, we train on news articles,
+13XSUM dataset is drawn from BBC news, and we iden-
+tify the topic of each article based on their URLs.
+Since
+“news” and “sports” are the two domains with the most arti-
+cles, we create our ﬁrst train/test split.
+Additionally, “news”
+has subdomains such as “UK”, “world”, and “technology”.
+Consequently, we create a second data split, using the top 3
+news subdomains as training data and the rest as test data.
+news-to-sports
+within-news
+R-1 ↑
+R-2 ↑
+R-L ↑
+R-1 ↑
+R-2 ↑
+R-L ↑
+FINE-TUNE
+38.15
+15.51
+30.26
+39.20
+16.35
+31.15
+PREFIX
+39.23
+16.74
+31.51
+39.41
+16.87
+31.47
+Table 3: Extrapolation performance on XSUM.
+Preﬁx-
+tuning outperforms ﬁne-tuning on both news-to-sports
+and within-news splits.
+and test on sports articles.
+In within-news, we
+train on {world, UK, business} news, and test on
+the remaining news categories (e.g., health, tech-
+nology).
+On both table-to-text and summarization, preﬁx-
+tuning has better extrapolation than ﬁne-tuning un-
+der all metrics, as shown in Table 3 and the ‘U’
+columns of Table 1 (middle).
+We also ﬁnd that adapter-tuning achieves good
+extrapolation performance, comparable with preﬁx-
+tuning, as shown in Table 1.
+This shared trend
+suggests that preserving LM parameters indeed has
+a positive impact on extrapolation.
+However, the
+0
+100
+200
+300
+Prefix Length (XSUM)
+18.5
+19.0
+19.5
+20.0
+20.5
+21.0
+ROUGE-2
+33.5
+34.0
+34.5
+35.0
+35.5
+36.0
+ROUGE-L
+ROUGE-2
+ROUGE-L
+0
+10
+20
+30
+40
+Prefix Length (DART)
+44.0
+44.5
+45.0
+45.5
+46.0
+BLEU
+0.460
+0.465
+0.470
+0.475
+0.480
+TER
+BLEU
+TER
+Figure 4:
+Preﬁx length vs.
+performance on summer-
+ization (left) and table-to-text (right).
+Performance in-
+creases as the preﬁx length increases up to a threshold
+(200 for summarization and 10 for table-to-text) and
+then a slight performance drop occurs.
+Each plot re-
+ports two metrics (on two vertical axes).
+reason for such gains is an open question and we
+will discuss further in §8.
+7
+Intrinsic Evaluation
+We compare different variants of preﬁx-tuning.
+§7.1 studies the impact of the preﬁx length.
+§7.2
+studies tuning only the embedding layer, which is
+more akin to tuning a discrete prompt.
+§7.3 com-
+pares preﬁxing and inﬁxing, which inserts trainable
+activations between x and y.
+§7.4 studies the im-
+pact of various preﬁx initialization strategies.
+7.1
+Preﬁx Length
+A longer preﬁx means more trainable parameters,
+and therefore more expressive power.
+Figure 4
+shows that performance increases as the preﬁx
+length increases up to a threshold (200 for sum-
+marization, 10 for table-to-text) and then a slight
+performance drop occurs.14
+Empirically, longer preﬁxes have a negligible
+impact on inference speed, because attention com-
+putation over the entire preﬁx is parallellized on
+GPUs.
+7.2
+Full vs Embedding-only
+Recall in §4.1, we discuss the option of optimizing
+the continuous embeddings of the “virtual tokens.”
+We instantiate that idea and call it embedding-only
+ablation.
+The word embeddings are free parame-
+ters, and the upper activation layers are computed
+by the Transformer.
+Table 4 (top) shows that the
+performance drops signiﬁcantly, suggesting that
+tuning only the embedding layer is not sufﬁciently
+expressive.
+The embedding-only ablation upper bounds the
+performance of discrete prompt optimization (Shin
+14Preﬁxes longer than the threshold lead to lower training
+loss, but slightly worse test performance, suggesting that they
+tend to overﬁt the training data.
+E2E
+BLEU
+NIST
+MET
+ROUGE
+CIDEr
+PREFIX
+69.7
+8.81
+46.1
+71.4
+2.49
+Embedding-only: EMB-{PreﬁxLength}
+EMB-1
+48.1
+3.33
+32.1
+60.2
+1.10
+EMB-10
+62.2
+6.70
+38.6
+66.4
+1.75
+EMB-20
+61.9
+7.11
+39.3
+65.6
+1.85
+Inﬁx-tuning: INFIX-{PreﬁxLength}
+INFIX-1
+67.9
+8.63
+45.8
+69.4
+2.42
+INFIX-10
+67.2
+8.48
+45.8
+69.9
+2.40
+INFIX-20
+66.7
+8.47
+45.8
+70.0
+2.42
+Table 4: Intrinsic evaluation of Embedding-only (§7.2)
+and Inﬁxing (§7.3).
+Both Embedding-only ablation and
+Inﬁx-tuning underperforms full preﬁx-tuning.
+random
+"active"
+"elephant"
+"summarize"
+"table-to-text:"
+"banana"
+"beautiful"
+"divide"
+"keep"
+0.45
+0.50
+0.55
+0.60
+BLEU
+Figure 5: Initializing the preﬁx with activations of real
+words signiﬁcantly outperforms random initialization,
+in low-data settings.
+et al., 2020), because discrete prompt restricts the
+embedding layer to exactly match the embedding
+of a real word.
+Consequently, we have this chain
+of increasing expressive power: discrete prompting
+< embedding-only ablation < preﬁx-tuning.
+7.3
+Preﬁxing vs Inﬁxing
+We also investigate how the trainable activations’
+position in the sequence affects performance.
+In
+preﬁx-tuning, we place them at the beginning
+[PREFIX; x; y].
+We can also place the trainable
+activations between x and y (i.e.
+[x; INFIX; y]) and
+call this inﬁx-tuning.
+Table 4 (bottom) shows that
+inﬁx-tuning slightly underperforms preﬁx-tuning.
+We believe this is because preﬁx-tuning can affect
+the activations of x and y whereas inﬁx-tuning can
+only inﬂuence the activations of y.
+7.4
+Initialization
+We ﬁnd that how the preﬁx is initialized has a large
+impact in low-data settings.
+Random initialization
+leads to low performance with high variance.
+Initializing the preﬁx with activations of real words
+signiﬁcantly improves generation, as shown in Fig-
+ure 5.
+In particular, initializing with task relevant
+words such as “summarization” and “table-to-text”
+obtains slightly better performance than task
+irrelevant words such as “elephant” and “divide”,
+but using real words is still better than random.
+Since we initialize the preﬁx with activations
+of real words computed by the LM, this initial-
+ization strategy is concordant with preserving the
+pretrained LM as much as possible.
+have
+been
+designed
+with
+different
+training
+objectives,
+includ-
+ing
+language
+modeling
+(Dai and Le,
+2015;
+Peters et al.,
+2018;
+Howard and Ruder,
+2018),
+machine translation (McCann et al., 2017), and
+masked language modeling (Devlin et al., 2019;
+Lample and Conneau,
+2019).
+Many
+recent
+papers have used a basic recipe of ﬁnetuning
+models for each end task (Howard and Ruder,
+2018;
+Radford et al.,
+2018),
+and
+pretraining
+with some variant of a masked language model
+objective.
+However,
+newer
+have
+improved performance by multi-task ﬁne tun-
+ing
+(Dong et al.,
+2019),
+incorporating
+entity
+embeddings
+(Sun et al.,
+2019),
+span
+predic-
+tion (Joshi et al., 2019), and multiple variants
+of autoregressive pretraining (Song et al., 2019;
+Chan et al., 2019; Yang et al., 2019).
+Perfor-
+mance is also typically improved by training
+bigger
+models
+on
+more
+data
+(Devlin et al.,
+2019; Baevski et al., 2019; Yang et al., 2019;
+Radford et al., 2019).
+Our goal was to replicate,
+simplify, and better tune the training of BERT,
+as a reference point for better understanding the
+relative performance of all of these methods.
+One of the key insights behind this is the unexpectedly regular structure of the underlying
+optimization task: even though the relevant problem corresponds to the maximization of a highly
+non-concave function with many distinct local maxima, their values are highly concentrated.
+Overall,
+our ﬁndings give us hope that adversarially robust deep learning models may be within current
+reach.
+For the MNIST dataset, our networks are very robust, achieving high accuracy for a wide range
+of powerful ℓ∞-bound adversaries and large perturbations.
+Our experiments on CIFAR10 have not
+reached the same level of performance yet.
+However, our results already show that our techniques
+lead to signiﬁcant increase in the robustness of the network.
+We believe that further exploring this
+direction will lead to adversarially robust networks for this dataset.
+15
+Acknowledgments
+Aleksander M ˛adry, Aleksandar Makelov, and Dimitris Tsipras were supported by the NSF Grant
+No.
+1553428, a Google Research Fellowship, and a Sloan Research Fellowship.
+Ludwig Schmidt
+was supported by a Google PhD Fellowship.
+Adrian Vladu was supported by the NSF Grants No.
+1111109 and No.
+1553428.
+We thank Wojciech Matusik for kindly providing us with computing resources to perform this
+work.
+References
+[1] Aharon Ben-Tal, Laurent El Ghaoui, and Arkadi Nemirovski.
+Robust optimization.
+Princeton
+University Press, 2009.
+[2] Battista Biggio, Igino Corona, Davide Maiorca, Blaine Nelson, Nedim Šrndi´c, Pavel Laskov,
+Giorgio Giacinto, and Fabio Roli.
+Evasion attacks against machine learning at test time.
+In
+Joint European conference on machine learning and knowledge discovery in databases (ECML-KDD),
+2013.
+[3] Battista Biggio and Fabio Roli.
+Wild patterns: Ten years after the rise of adversarial machine
+learning.
+2018.
+[4] Wieland Brendel, Jonas Rauber, and Matthias Bethge.
+Decision-based adversarial attacks:
+Reliable attacks against black-box machine learning models.
+In International Conference on
+Learning Representations (ICLR), 2017.
+[5] Nicholas Carlini and David Wagner.
+Adversarial examples are not easily detected: Bypassing
+ten detection methods.
+In Workshop on Artiﬁcial Intelligence and Security (AISec), 2017.
+[6] Nicholas Carlini and David Wagner.
+Towards evaluating the robustness of neural networks.
+In Symposium on Security and Privacy (SP), 2017.
+[7] Ronan Collobert and Jason Weston.
+A uniﬁed architecture for natural language processing:
+Deep neural networks with multitask learning.
+In Proceedings of the 25th international conference
+on Machine learning, pages 160–167, 2008.
+[8] Nilesh Dalvi, Pedro Domingos, Sumit Sanghai, and Deepak Verma.
+Adversarial classiﬁcation.
+In international conference on Knowledge discovery and data mining, 2004.
+[9] Alhussein Fawzi, Omar Fawzi, and Pascal Frossard.
+Analysis of classiﬁers’ robustness to
+adversarial perturbations.
+Machine Learning, 107(3):481–508, 2018.
+[10] Amir Globerson and Sam Roweis.
+Nightmare at test time: robust learning by feature deletion.
+In Proceedings of the 23rd international conference on Machine learning, 2006.
+[11] Ian J Goodfellow, Jonathon Shlens, and Christian Szegedy.
+Explaining and harnessing adver-
+sarial examples.
+In International Conference on Learning Representations (ICLR), 2015.
+16
+[12] Kaiming He, Xiangyu Zhang, Shaoqing Ren, and Jian Sun.
+Delving deep into rectiﬁers:
+Surpassing human-level performance on imagenet classiﬁcation.
+In international conference on
+computer vision (ICCV), 2015.
+[13] Kaiming He, Xiangyu Zhang, Shaoqing Ren, and Jian Sun.
+Deep residual learning for image
+recognition.
+In Conference on Computer Vision and Pattern Recognition (CVPR), 2016.
+[14] Warren He, James Wei, Xinyun Chen, Nicholas Carlini, and Dawn Song.
+Adversarial example
+defense: Ensembles of weak defenses are not strong.
+In USENIX Workshop on Offensive
+Technologies (WOOT), 2017.
+[15] Ruitong Huang, Bing Xu, Dale Schuurmans, and Csaba Szepesvari.
+Learning with a strong
+adversary.
+arXiv preprint arXiv:1511.03034, 2015.
+[16] Alex Krizhevsky.
+Learning multiple layers of features from tiny images.
+In Technical report,
+2009.
+[17] Alex Krizhevsky, Ilya Sutskever, and Geoffrey E Hinton.
+Imagenet classiﬁcation with deep
+convolutional neural networks.
+In Advances in Neural Information Processing Systems (NeurIPS),
+2012.
+[18] Alexey Kurakin, Ian J.
+Goodfellow, and Samy Bengio.
+Adversarial machine learning at scale.
+In International Conference on Learning Representations (ICLR), 2017.
+[19] Yann LeCun.
+The mnist database of handwritten digits.
+In Technical report, 1998.
+[20] Bai Li, Changyou Chen, Wenlin Wang, and Lawrence Carin.
+Second-order adversarial attack
+and certiﬁable robustness.
+arXiv preprint arXiv:1809.03113, 2018.
+[21] Seyed-Mohsen Moosavi-Dezfooli, Alhussein Fawzi, and Pascal Frossard.
+Deepfool: a simple
+and accurate method to fool deep neural networks.
+In Computer Vision and Pattern Recognition
+(CVPR), 2016.
+[22] Anh Nguyen, Jason Yosinski, and Jeff Clune.
+Deep neural networks are easily fooled: High
+conﬁdence predictions for unrecognizable images.
+In Conference on computer vision and pattern
+recognition (CVPR), 2015.
+[23] Nicolas Papernot, Patrick McDaniel, and Ian Goodfellow.
+Transferability in machine learn-
+ing: from phenomena to black-box attacks using adversarial samples.
+In ArXiv preprint
+arXiv:1605.07277, 2016.
+[24] Nicolas Papernot, Patrick D.
+McDaniel, Xi Wu, Somesh Jha, and Ananthram Swami.
+Distilla-
+tion as a defense to adversarial perturbations against deep neural networks.
+In Symposium on
+Security and Privacy (SP), 2016.
+[25] Lukas Schott, Jonas Rauber, Matthias Bethge, and Wieland Brendel.
+Towards the ﬁrst ad-
+versarially robust neural network model on MNIST.
+In International Conference on Learning
+Representations (ICLR), 2019.
+17
+[26] Uri Shaham, Yutaro Yamada, and Sahand Negahban.
+Understanding adversarial training:
+Increasing local stability of supervised models through robust optimization.
+Neurocomputing,
+307:195–204, 2018.
+[27] Jure Sokoli´c, Raja Giryes, Guillermo Sapiro, and Miguel RD Rodrigues.
+Robust large margin
+deep neural networks.
+In Transactions on Signal Processing, 2017.
+[28] Christian Szegedy, Wojciech Zaremba, Ilya Sutskever, Joan Bruna, Dumitru Erhan, Ian Good-
+fellow, and Rob Fergus.
+Intriguing properties of neural networks.
+In International Conference
+on Learning Representations (ICLR), 2014.
+[29] Florian Tramer, Nicolas Papernot, Ian Goodfellow, and Patrick McDaniel Dan Boneh.
+The
+space of transferable adversarial examples.
+In ArXiv preprint arXiv:1704.03453, 2017.
+[30] Abraham Wald.
+Statistical decision functions which minimize the maximum risk.
+In Annals of
+Mathematics, 1945.
+[31] Weilin Xu, David Evans, and Yanjun Qi.
+Feature squeezing: Detecting adversarial examples in
+deep neural networks.
+In Network and Distributed Systems Security Symposium (NDSS), 2018.
+A
+Statement and Application of Danskin’s Theorem
+Recall that our goal is to minimize the value of the saddle point problem
+min
+θ
+ρ(θ),
+where
+ρ(θ) = E(x,y)∼D
+
+max
+δ∈S L(θ, x + δ, y)
+
+.
+In practice, we don’t have access to the distribution D so both the gradients and the value of
+ρ(θ) will be computed using sampled input points.
+Therefore we can consider –without loss of
+generality– the case of a single random example x with label y, in which case the problem becomes
+min
+θ
+max
+δ∈S g(θ, δ),
+where
+g(θ, δ) = L(θ, x + δ, y) .
+If we assume that the loss L is continuously differentiable in θ, we can compute a descent
+direction for θ by utilizing the classical theorem of Danskin.
+Theorem A.1 (Danskin).
+Let S be nonempty compact topological space and g : Rn × S →R be such that
+g(·, δ) is differentiable for every δ ∈S and ∇θg(θ, δ) is continuous on Rn × S.
+Also, let δ∗(θ) = {δ ∈
+arg maxδ∈S g(θ, δ)}.
+Then the corresponding max-function
+φ(θ) = max
+δ∈S g(θ, δ)
+is locally Lipschitz continuous, directionally differentiable, and its directional derivatives satisfy
+φ′(θ, h) = sup
+δ∈δ∗(θ)
+h⊤∇θg(θ, δ) .
+In particular, if for some θ ∈Rn the set δ∗(θ) = {δ∗
+θ } is a singleton, the the max-function is differentiable
+at θ and
+∇φ(θ) = ∇θg(θ, δ∗
+θ )
+18
+The intuition behind the theorem is that since gradients are local objects, and the function φ(θ)
+is locally the same as g(θ, δ∗
+θ ) their gradients will be the same.
+The theorem immediately gives
+us the following corollary, stating the we can indeed compute gradients for the saddle point by
+computing gradients at the inner optimizers.
+Corollary A.2.
+Let δ be such that δ ∈S and is a maximizer for maxδ L(θ, x + δ, y).
+Then, as long as it is
+nonzero, −∇θL(θ, x + δ, y) is a descent direction for φ(θ) = maxδ∈S L(θ, x + δ, y).
+Proof of Corollary A.2.
+We apply Theorem A.1 to g(θ, δ) := L(θ, x + δ, y) and S = B∥·∥(ε).
+We see
+that the directional derivative in the direction of h = ∇θL(θ, x + δ, y) satisﬁes
+φ′(θ, h) = sup
+δ∈δ∗(θ)
+h⊤∇θL(θ, x + δ, y) ≥h⊤h = ∥∇θL(θ, x + δ, y)∥2
+2 ≥0 .
+If this gradient is nonzero, then the inequality above is strict.
+Therefore it gives a descent direction.
+A technical issue is that, since we use ReLU and max-pooling units in our neural network
+architecture, the loss function is not continuously differentiable.
+Nevertheless, since the set of
+discontinuities has measure zero, we can assume that this will not be an issue in practice, as we
+will never encounter the problematic points.
+Another technical issue is that, due to the not concavity of the inner problem, we are not able
+to compute global maximizers, since PGD will converge to local maxima.
+In such cases, we can
+consider a subset S′ of S such that the local maximum is a global maximum in the region S′.
+Applying the theorem for S′ gives us that the gradient corresponds to a descent direction for the
+saddle point problem when the adversary is constrained in S′.
+Therefore if the inner maximum is a
+true adversarial example for the network, then SGD using the gradient at that point will decrease
+the loss value at this particular adversarial examples, thus making progress towards a robust
+model.
+These arguments suggest that the conclusions of the theorem are still valid in our saddle point
+problem, and –as our experiments conﬁrm– we can solve it reliably.
+B
+Transferability
+A lot of recent literature on adversarial training discusses the phenomenon of transferability [28, 11,
+29]—adversarial examples transfer between independently trained networks.
+This raises concerns
+for practical applications, since it suggests that deep networks are vulnerable to attacks, even when
+there is no direct access to the target network.
+This phenomenon is further conﬁrmed by our current experiments.
+2 Moreover, we notice
+that the extent to which adversarial examples transfer decreases as we increase either network
+capacity or the power of the adversary used for training the network.
+This serves as evidence for
+the fact that the transferability phenomenon can be alleviated by using high capacity networks in
+conjunction with strong oracles for the inner optimization problem.
+2Our experiments involve transferability between networks with the same architecture (potentially with layers of
+varying sizes), trained with the same method, but with different random initializations.
+The reason we consider these
+models rather than highly different architectures is that they are likely the worst case instances for transferability.
+19
+MNIST.
+In an attempt to understand these phenomena we inspect the loss functions correspond-
+ing to the trained models we used for testing transferability.
+More precisely, we compute angles
+between gradients of the loss functions evaluated over a large set of input examples, and plot
+their distribution.
+Similarly, we plot the value of the loss functions between clean and perturbed
+examples for both the source and transfer networks.
+In Figure 8 we plot our experimental ﬁndings
+on the MNIST dataset for ε = 0.3.
+We consider a large standard network (two convolutional layers
+of sizes 32 and 64, and a fully connected layer of size 1024), which we train twice starting with
+different initializations.
+We plot the distribution of angles between gradients for the same test
+image in the two resulting networks (orange histograms), noting that they are somewhat correlated.
+As opposed to this, we see that pairs of gradients for random pairs of inputs for one architecture
+are as uncorrelated as they can be (blue histograms), since the distribution of their angles looks
+Gaussian.
+Next, we run the same experiment on a very large standard network (two convolutional layers of
+sizes 64 and 128, and a fully connected layer of size 1024).
+We notice a mild increase in classiﬁcation
+accuracy for transferred examples.
+Finally, we repeat the same set of experiments, after training the large and very large networks
+against the FGSM adversary.
+We notice that gradients between the two architectures become
+signiﬁcantly less correlated.
+Also, the classiﬁcation accuracy for transferred examples increases
+signiﬁcantly compared to the standard networks.
+We further plot how the value of the loss function changes when moving from the natural
+input towards the adversarially perturbed input (in Figure 8 we show these plots for four images
+in the MNIST test dataset), for each pair of networks we considered.
+We observe that, while for
+the naturally trained networks, when moving towards the perturbed point, the value of the loss
+function on the transfer architecture tends to start increasing soon after it starts increasing on the
+source architecture.
+In contrast, for the stronger models, the loss function on the transfer network
+tends to start increasing later, and less aggressively.
+CIFAR10.
+For the CIFAR10 dataset, we investigate the transferability of the FGSM and PGD
+adversaries between our simple and wide architectures, each trained on natural, FGSM and PGD
+examples.
+Transfer accuracies for the FGSM adversary and PGD adversary between all pairs of
+such conﬁgurations (model + training method) with independently random weight initialization
+are given in tables 3 and 4 respectively.
+The results exhibit the following trends:
+• Stronger adversaries decrease transferability: In particular, transfer attacks between two
+PGD-trained models are less successful than transfer attacks between their standard counter-
+parts.
+Moreover, adding PGD training helps with transferability from all adversarial datasets,
+except for those with source a PGD-trained model themselves.
+This applies to both FGSM
+attacks and PGD attacks.
+• Capacity decreases transferability: In particular, transfer attacks between two PGD-trained
+wide networks are less successful than transfer attacks between their simple PGD-trained
+counterparts.
+Moreover, with few close exceptions, changing the architecture from simple
+to wide (and keeping the training method the same) helps with transferability from all
+adversarial datasets.
+We additionally plotted how the loss of a network behaves in the direction of FGSM and PGD
+examples obtained from itself and an independently trained copy; results for the simple standard
+20
+network and the wide PGD trained network are given in Table 7.
+As expected, we observe the
+following phenomena:
+• sometimes, the FGSM adversary manages to increase loss faster near the natural example, but
+as we move towards the boundary of the ℓ∞box of radius ε, the PGD attack always achieves
+higher loss.
+• the transferred attacks do worse than their white-box counterparts in terms of increasing the
+loss;
+• and yet, the transferred PGD attacks dominate the white-box FGSM attacks for the standard
+network (and sometimes for the PGD-trained one too).
+Target
+Source
+Simple
+(standard
+training)
+Simple
+(FGSM
+training)
+Simple
+(PGD
+training)
+Wide
+(natural
+training)
+Wide
+(FGSM
+training)
+Wide
+(PGD
+training)
+Simple
+(standard training) 32.9%
+74.0%
+73.7%
+27.6%
+71.8%
+76.6%
+Simple
+(FGSM training)
+64.2%
+90.7%
+60.9%
+61.5%
+90.2%
+67.3%
+Simple
+(PGD training)
+77.1%
+78.1%
+60.2%
+77.0%
+77.9%
+66.3%
+Wide
+(standard training) 34.9%
+78.7%
+80.2%
+21.3%
+75.8%
+80.6%
+Wide
+(FGSM training)
+64.5%
+93.6%
+69.1%
+53.7%
+92.2%
+72.8%
+Wide
+(PGD training)
+85.8%
+86.6%
+73.3%
+85.6%
+86.2%
+67.0%
+Table 3: CIFAR10: black-box FGSM attacks.
+We create FGSM adversarial examples with ε = 8 from
+the evaluation set on the source network, and then evaluate them on an independently initialized
+target network.
+21
+Target
+Source
+Simple
+(standard
+training)
+Simple
+(FGSM
+training)
+Simple
+(PGD
+training)
+Wide
+(natural
+training)
+Wide
+(FGSM
+training)
+Wide
+(PGD
+training)
+Simple
+(standard training) 6.6%
+71.6%
+71.8%
+1.4%
+51.4%
+75.6%
+Simple
+(FGSM training)
+66.3%
+40.3%
+58.4%
+65.4%
+26.8%
+66.2%
+Simple
+(PGD training)
+78.1%
+78.2%
+57.7%
+77.9%
+78.1%
+65.2%
+Wide
+(standard training) 10.9%
+79.6%
+79.1%
+0.0%
+51.3%
+79.7%
+Wide
+(FGSM training)
+67.6%
+51.7%
+67.4%
+56.5%
+0.0%
+71.6%
+Wide
+(PGD training)
+86.4%
+86.8%
+72.1%
+86.0%
+86.3%
+64.2%
+Table 4: CIFAR10: black-box PGD attacks.
+We create PGD adversarial examples with ε = 8
+for 7 iterations from the evaluation set on the source network, and then evaluate them on an
+independently initialized target network.
+Model
+Adversary Natural FGSM FGSM random PGD (7 steps) PGD (20 steps)
+Simple
+(standard training)
+92.7%
+27.5%
+19.6%
+1.2%
+0.8%
+Simple
+(FGSM training)
+87.4%
+90.9%
+90.4%
+0.0%
+0.0%
+Simple
+(PGD training)
+79.4%
+51.7%
+55.9%
+47.1%
+43.7%
+Wide
+(standard training)
+95.2%
+32.7%
+25.1%
+4.1%
+3.5%
+Wide
+(FGSM training)
+90.3%
+95.1%
+95.0%
+0.0%
+0.0%
+Wide
+(PGD training)
+87.3%
+56.1%
+60.3%
+50.0%
+45.8%
+Table 5: CIFAR10: white-box attacks for ε = 8.
+For each architecture and training method, we
+list the accuracy of the resulting network on the full CIFAR10 evaluation set of 10,000 examples.
+The FGSM random method is the one suggested by [29], whereby we ﬁrst do a small random
+perturbation of the natural example, and the apply FGSM to that.
+22
+0.0
+0.2
+0.4
+0.6
+0.8
+1.0
+0
+20
+40
+60
+80
+100
+120
+0.0
+0.2
+0.4
+0.6
+0.8
+1.0
+0
+10
+20
+30
+40
+50
+60
+70
+0.0
+0.2
+0.4
+0.6
+0.8
+1.0
+0
+20
+40
+60
+80
+100
+0.0
+0.2
+0.4
+0.6
+0.8
+1.0
+0
+20
+40
+60
+80
+100
+0.0
+0.2
+0.4
+0.6
+0.8
+1.0
+0
+20
+40
+60
+80
+0.0
+0.2
+0.4
+0.6
+0.8
+1.0
+1
+2
+3
+4
+5
+6
+7
+8
+0.0
+0.2
+0.4
+0.6
+0.8
+1.0
+0.0
+0.5
+1.0
+1.5
+2.0
+2.5
+0.0
+0.2
+0.4
+0.6
+0.8
+1.0
+0
+1
+2
+3
+4
+5
+6
+0.0
+0.2
+0.4
+0.6
+0.8
+1.0
+0.00
+0.01
+0.02
+0.03
+0.04
+0.05
+0.0
+0.2
+0.4
+0.6
+0.8
+1.0
+0
+1
+2
+3
+4
+5
+6
+7
+Figure 7: CIFAR10: change of loss function in the direction of white-box and black-box FGSM
+and PGD examples with ε = 8 for the same ﬁve natural examples.
+Each line shows how the loss
+changes as we move from the natural example to the corresponding adversarial example.
+Top:
+simple naturally trained model.
+Bottom: wide PGD trained model.
+We plot the loss of the original
+network in the direction of the FGSM example for the original network (red lines), 5 PGD examples
+for the original network obtained from 5 random starting points (blue lines), the FGSM example
+for an independently trained copy network (green lines) and 5 PGD examples for the copy network
+obtained from 5 random starting points (black lines).
+All PGD attacks use 100 steps with step size
+0.3.
+23
+Source Transfer
+Clean
+99.2%
+99.2%
+FGSM
+3.9%
+41.9%
+PGD
+0.0%
+26.0%
+Large network, standard
+training
+40     50     60     70    80     90   100   110
+0
+1
+2
+3
+4
+5
+0
+1
+2
+3
+4
+5
+0
+1
+2
+3
+4
+5
+0
+1
+2
+3
+4
+5
+Source Transfer
+Clean
+99.2%
+99.3%
+FGSM
+7.2%
+44.6%
+PGD
+0.0%
+35.0%
+Very large network, stan-
+dard training
+40     50     60     70    80     90   100   110
+0
+1
+2
+3
+4
+5
+0
+1
+2
+3
+4
+5
+0
+1
+2
+3
+4
+5
+0
+1
+2
+3
+4
+5
+Source Transfer
+Clean
+92.9%
+96.1%
+FGSM
+99.9%
+62.0%
+PGD
+0.0%
+54.1%
+Large
+network,
+FGSM
+training
+40     50     60     70    80     90   100   110
+0
+1
+2
+3
+4
+5
+0
+1
+2
+3
+4
+5
+0
+1
+2
+3
+4
+5
+0
+1
+2
+3
+4
+5
+Source Transfer
+Clean
+96.4%
+97.8%
+FGSM
+99.4%
+71.6%
+PGD
+0.0%
+60.6%
+Very large network, FGSM
+training
+40     50     60     70    80     90   100   110
+0
+1
+2
+3
+4
+5
+0
+1
+2
+3
+4
+5
+0
+1
+2
+3
+4
+5
+0
+1
+2
+3
+4
+5
+Figure 8: Transferability experiments for four different instances (standard large and very large
+networks, and FGSM-trained large and very large networks, respectively).
+For each instance we ran
+the same training algorithm twice, starting from different initializations.
+Tables on the left show the
+accuracy of the networks against three types of input (clean, perturbed with FGSM, perturbed with
+PGD ran for 40 steps); the ﬁrst column shows the resilience of the ﬁrst network against examples
+produced using its own gradients, the second column shows resilience of the second network
+against examples transferred from the former network.
+The histograms reﬂect angles between pairs
+of gradients corresponding to the same inputs versus the baseline consisting of angles between
+gradients from random pairs of points.
+Images on the right hand side reﬂect how the loss functions
+of the native and the transfer network change when moving in the direction of the perturbation;
+the perturbation is at 1 on the horizontal axis.
+Plots in the top row are for FGSM perturbations,
+plots in the bottom row are for PGD perturbations produced over 40 iterations.
+24
+C
+MNIST Inspection
+The robust MNIST model described so far is small enough that we can visually inspect most of
+its parameters.
+Doing so will allow us to understand how it is different from a standard network
+and what are the general characteristics of a network that is robust against ℓ∞adversaries.
+We will
+compare three different networks: a standard model, and two adversarially trained ones.
+The latter
+two models are identical, modulo the random weight initialization, and were used as the public
+and secret models used for our robustness challenge.
+Initially, we examine the ﬁrst convolutional layer of each network.
+We observe that the robust
+models only utilize 3 out of the total 32 ﬁlters, and for each of these ﬁlters only one weight is non-
+zero.
+By doing so, the convolution degrades into a scaling of the original image.
+Combined with
+the bias and the ReLU that follows, this results in a thresholding ﬁlter, or equivalently ReLU(αx −β)
+for some constants α, β.
+From the perspective of adversarial robustness, thresholding ﬁlters are
+immune to any perturbations on pixels with value less than β −ε.
+We visualize a sample of the
+ﬁlters in Figure 9 (plots a, c, and e).
+Having observed that the ﬁrst layer of the network essentially maps the original image to three
+copies thresholded at different values, we examine the second convolutional layer of the classiﬁer.
+Again, the ﬁlter weights are relatively sparse and have a signiﬁcantly wider value range than the
+standard version.
+Since only three channels coming out of the ﬁrst layer matter, is follows (and is
+veriﬁed) that the only relevant convolutional ﬁlters are those that interact with these three channels.
+We visualize a sample of the ﬁlters in Figure 9 (plots b, d, and f).
+Finally, we examine the softmax/output layer of the network.
+While the weights seem to be
+roughly similar between all three version of the network, we notice a signiﬁcant difference in the
+class biases.
+The adversarially trained networks heavily utilize class biases (far from uniform), and
+do so in a way very similar to each other.
+A plausible explanation is that certain classes tend to be
+very vulnerable to adversarial perturbations, and the network learns to be more conservative in
+predicting them.
+The plots can be found in Figure 10.
+All of the “tricks” described so far seem intuitive to a human and would seem reasonable
+directions when trying to increase the adversarial robustness of a classiﬁer.
+We emphasize the
+none of these modiﬁcations were hard-coded in any way and they were all learned solely through
+adversarial training.
+We attempted to manually introduce these modiﬁcations ourselves, aiming to
+achieve adversarial robustness without adversarial training, but with no success.
+A simple PGD
+adversary could fool the resulting models on all the test set examples.
+D
+Supplementary Figures
+25
+(a) Standard Model First Conv.
+Layers
+(b) Natural Model Second Conv.
+Layer
+(c) Public Model First Conv.
+Layers
+(d) Public Model Second Conv.
+Layer
+(e) Secret Model First Conv.
+Layers
+(f) Secret Model Second Conv.
+Layer
+0.2
+0.0
+0.2
+0.4
+0.6
+0.8
+1.0
+1.2
+3
+2
+1
+0
+1
+Figure 9: Visualizing a sample of the convolutional ﬁlters.
+For the standard model (a,b) we visualize
+random ﬁlters, since there is no observable difference in any of them.
+For the ﬁrst layer of robust
+networks we make sure to include the 3 non-zero ﬁlters.
+For the second layer, the ﬁrst three
+columns represent convolutional ﬁlters that utilize the 3 non-zero channels, and we choose the
+most interesting ones (larger range of values).
+We observe that adversarially trained networks have
+signiﬁcantly more concentrated weights.
+Moreover, the ﬁrst convolutional layer degrades into a
+few thresholding ﬁlters.
+26
+0
+2
+4
+6
+8
+Class
+0.050
+0.075
+0.100
+0.125
+0.150
+0.175
+Softmax bias
+natural
+public
+secret
+0.4
+0.2
+0.0
+0.2
+0.4
+Softmax weight
+0
+1000
+2000
+3000
+4000
+Frequency
+natural
+public
+secret
+(a) Softmax biases for each class
+(b) Distribution of softmax weights
+Figure 10: Softmax layer examination.
+For each network we create a histogram of the layer’s
+weights and plot the per-class bias.
+We observe that while weights are similar (slightly more
+concentrated for the standard one) the biases are far from uniform and with a similar pattern for
+the two adversarially trained networks.
+27
+MNIST
+0
+25
+50
+75
+100
+Iterations
+0
+50
+100
+150
+Loss value
+0
+25
+50
+75
+100
+Iterations
+0
+50
+100
+150
+0
+25
+50
+75
+100
+Iterations
+0
+50
+100
+150
+0
+25
+50
+75
+100
+Iterations
+0
+50
+100
+0
+25
+50
+75
+100
+Iterations
+0
+50
+100
+150
+0
+25
+50
+75
+100
+Iterations
+0
+1
+2
+3
+Loss value
+0
+25
+50
+75
+100
+Iterations
+0.0
+0.5
+1.0
+1.5
+2.0
+0
+25
+50
+75
+100
+Iterations
+0.0
+0.5
+1.0
+0
+25
+50
+75
+100
+Iterations
+1
+2
+3
+4
+5
+0
+25
+50
+75
+100
+Iterations
+2
+4
+6
+CIFAR10
+0
+25
+50
+75
+100
+Iterations
+0
+50
+100
+Loss value
+0
+25
+50
+75
+100
+Iterations
+0
+20
+40
+60
+80
+0
+25
+50
+75
+100
+Iterations
+0
+25
+50
+75
+100
+0
+25
+50
+75
+100
+Iterations
+0
+25
+50
+75
+100
+0
+25
+50
+75
+100
+Iterations
+0
+25
+50
+75
+0
+25
+50
+75
+100
+Iterations
+1.2
+1.4
+1.6
+Loss value
+0
+25
+50
+75
+100
+Iterations
+0.2
+0.3
+0
+25
+50
+75
+100
+Iterations
+0.5
+1.0
+1.5
+2.0
+2.5
+0
+25
+50
+75
+100
+Iterations
+0.2
+0.4
+0.6
+0
+25
+50
+75
+100
+Iterations
+0.4
+0.6
+0.8
+1.0
+Figure 11: Loss function value over PGD iterations for 20 random restarts on random examples.
+The 1st and 3rd rows correspond to standard networks, while the 2nd and 4th to adversarially
+trained ones.
+Natural: 9
+Natural: 9
+Natural: 8
+Natural: 8
+Natural: 2
+Adversarial: 7
+Adversarial: 4
+Adversarial: 5
+Adversarial: 3
+Adversarial: 3
+Figure 12: Sample adversarial examples with ℓ2 norm bounded by 4.
+The perturbations are
+signiﬁcant enough to cause misclassiﬁcation by humans too.
+28

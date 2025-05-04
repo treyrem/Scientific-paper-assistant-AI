@@ -1,0 +1,52 @@
+[
+  {
+    "question": "What is a key feature of BERT's design compared to previous language representation models?",
+    "choices": {
+      "A": "It only considers left context in all layers.",
+      "B": "It relies on traditional left-to-right language models.",
+      "C": "It uses unidirectional self-attention mechanisms.",
+      "D": "It pre-trains deep bidirectional representations from unlabeled text."
+    },
+    "correct_answer": "D"
+  },
+  {
+    "question": "How does BERT handle a variety of downstream tasks with different input types?",
+    "choices": {
+      "A": "By using only token embeddings for input representations.",
+      "B": "By using a separate model for each task.",
+      "C": "By packing sentence pairs together in a single sequence.",
+      "D": "By ignoring the input type and treating all tasks the same."
+    },
+    "correct_answer": "C"
+  },
+  {
+    "question": "What is the primary difference between BERTBASE and BERTLARGE models?",
+    "choices": {
+      "A": "The number of layers and hidden size.",
+      "B": "The type of pre-training tasks used.",
+      "C": "The vocabulary size and token embeddings.",
+      "D": "The fine-tuning approach for downstream tasks."
+    },
+    "correct_answer": "A"
+  },
+  {
+    "question": "Which pre-training tasks are used in BERT to train a model that understands sentence relationships?",
+    "choices": {
+      "A": "Left-to-right language modeling only.",
+      "B": "Bidirectional language modeling with NSP.",
+      "C": "Token-level tasks with named entity recognition.",
+      "D": "Semantic textual similarity benchmarking."
+    },
+    "correct_answer": "B"
+  },
+  {
+    "question": "How does BERT mitigate the mismatch between pre-training and fine-tuning caused by the [MASK] token?",
+    "choices": {
+      "A": "By replacing all masked words with random tokens.",
+      "B": "By predicting all masked words during fine-tuning.",
+      "C": "By using a fixed percentage of token positions for prediction.",
+      "D": "By reconstructing the entire input during fine-tuning."
+    },
+    "correct_answer": "C"
+  }
+]
