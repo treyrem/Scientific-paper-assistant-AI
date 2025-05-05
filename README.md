@@ -2,6 +2,9 @@ Scientific Paper Assistant AI
 A comprehensive tool for analyzing, summarizing, and interacting with scientific research papers in PDF format. This project helps researchers, students, and academics to quickly understand and extract key information from scientific papers.
 Features
 
+You can view the demo under the link below
+https://youtu.be/AGmmqGjZg_0
+
 PDF Analysis: Extract structured information from research papers including title, authors, sections, and layout analysis
 Automatic Summarization: Generate extractive and synthesized summaries of papers
 Key Concept Extraction: Identify and define important terms and concepts
