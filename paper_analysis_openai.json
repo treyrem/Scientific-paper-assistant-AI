@@ -1,0 +1,325 @@
+{
+  "title": "Published as a conference paper at ICLR 2015",
+  "authors": [
+    "Dzmitry Bahdanau"
+  ],
+  "publication_year": 2015,
+  "doi": null,
+  "sections": {},
+  "abstract_summary": null,
+  "introduction_summary": null,
+  "methods_summary": null,
+  "results_summary": null,
+  "discussion_summary": null,
+  "conclusion_summary": null,
+  "key_concepts": [],
+  "keywords": [],
+  "full_summary": "Could not generate full summary: Missing key section extractions.",
+  "significance": "Could not generate significance statement: Missing Abstract or Conclusion extractions.",
+  "figures": [],
+  "tables": [
+    {
+      "type": "table",
+      "bbox": [
+        301.07281494140625,
+        427.6854248046875,
+        424.07843017578125,
+        648.0101928710938
+      ],
+      "confidence": 0.9999477863311768,
+      "page": 1,
+      "has_mask": true,
+      "table_id": "table_1_1",
+      "file_path": "paper_figures\\tables\\table_page1_1.png",
+      "caption": "",
+      "text_content": " approach to machine translation\ner et al. (2014) and Cho et al. (\n, e.g., Koehn et al., 2003) whic\ny, neural machine translation at\nentence and outputs a correct tr\nlation models belong to a fa\n14a), with an encoder and a de\nplied to each sentence whose ou\nder neural network reads and en\n outputs a translation from the e\nof the encoder and the decoder \na correct translation given a sou\nproach is that a neural network\nurce sentence into a fixed-lengt\nwith long sentences, especially t\n al. (2014b) showed that indeed\nthe length of an input sentence i",
+      "dimensions": {
+        "width": 370,
+        "height": 662
+      }
+    },
+    {
+      "type": "table",
+      "bbox": [
+        300.0587463378906,
+        428.75347900390625,
+        424.13885498046875,
+        649.3275756835938
+      ],
+      "confidence": 0.9999209642410278,
+      "page": 2,
+      "has_mask": true,
+      "table_id": "table_2_1",
+      "file_path": "paper_figures\\tables\\table_page2_1.png",
+      "caption": "",
+      "text_content": "hine translation has already show\nmachine translation based on RN\nhe state-of-the-art performance \nEnglish-to-French translation ta\nr instance, to score the phrase \n translations (Sutskever et al., 20\ne level.\nwork, called RNN Encoder\u2013De\npon which we build a novel arc\ner reads the input sentence, a s\nommon approach is to use an R\n (xt, ht\u22121)\n1, \u00b7 \u00b7 \u00b7 , hTx}) ,\nd c is a vector generated from ",
+      "dimensions": {
+        "width": 373,
+        "height": 662
+      }
+    },
+    {
+      "type": "table",
+      "bbox": [
+        301.0514831542969,
+        428.45111083984375,
+        424.3231506347656,
+        648.7437744140625
+      ],
+      "confidence": 0.9999103546142578,
+      "page": 3,
+      "has_mask": true,
+      "table_id": "table_3_1",
+      "file_path": "paper_figures\\tables\\table_page3_1.png",
+      "caption": "",
+      "text_content": "x1\nx2\n\u03b1t,2\nh1\nh\nh1\nh\nFigure 1: \ntration of \ntrying to g\nget word \nsentence (\ncoder\u2013decoder ap-\ntioned on a distinct\nce of annotations\nput sentence. Each\nole input sequence\nhe i-th word of the\nnotations are com-\nghted sum of these\n(5)\ned by\nexp (eij)\nTx\n=1 exp (eik)\n,",
+      "dimensions": {
+        "width": 370,
+        "height": 662
+      }
+    },
+    {
+      "type": "table",
+      "bbox": [
+        300.692138671875,
+        428.149658203125,
+        424.1090393066406,
+        649.0514526367188
+      ],
+      "confidence": 0.9999188184738159,
+      "page": 4,
+      "has_mask": true,
+      "table_id": "table_4_1",
+      "file_path": "paper_figures\\tables\\table_page4_1.png",
+      "caption": "",
+      "text_content": "this way, the annotation hj con\ng words. Due to the tendency\nbe focused on the words around\nignment model later to comput\noposed model.\nof English-to-French translation\n\u201914.3 As a comparison, we als\ns proposed recently by Cho et a\net for both models.4\nch parallel corpora: Europarl (\ned corpora of 90M and 272.5M\nescribed in Cho et al. (2014a), w",
+      "dimensions": {
+        "width": 371,
+        "height": 664
+      }
+    },
+    {
+      "type": "table",
+      "bbox": [
+        300.6906433105469,
+        428.62774658203125,
+        423.9805603027344,
+        649.1161499023438
+      ],
+      "confidence": 0.9999246597290039,
+      "page": 5,
+      "has_mask": true,
+      "table_id": "table_5_1",
+      "file_path": "paper_figures\\tables\\table_page5_1.png",
+      "caption": "",
+      "text_content": "ecurrent neural networks (RNN\n. In both cases, we use a multila\nlayer to compute the conditiona\nt (SGD) algorithm together wit\ndirection is computed using a m\ny 5 days.\n find a translation that approxim\n; Boulanger-Lewandowski et al\nlations from their neural machin\nels and training procedure used\nmeasured in BLEU score. It is \n outperforms the conventional ",
+      "dimensions": {
+        "width": 370,
+        "height": 663
+      }
+    },
+    {
+      "type": "table",
+      "bbox": [
+        301.3699645996094,
+        427.2427062988281,
+        424.7491149902344,
+        648.6334838867188
+      ],
+      "confidence": 0.9998629093170166,
+      "page": 6,
+      "has_mask": true,
+      "table_id": "table_6_1",
+      "file_path": "paper_figures\\tables\\table_page6_1.png",
+      "caption": "",
+      "text_content": "\"\n,\na\ndit\nl'\nhomme\n.\n<end>\n(d)\nRNNsearch-50. The x-axis and \ne (English) and the generated tr\nf the annotation of the j-th sour\nk, 1: white). (a) an arbitrary se\n without any unknown words an\nproach was the use of a fixed-le",
+      "dimensions": {
+        "width": 371,
+        "height": 665
+      }
+    },
+    {
+      "type": "table",
+      "bbox": [
+        300.6231689453125,
+        429.4893493652344,
+        424.2308349609375,
+        650.285888671875
+      ],
+      "confidence": 0.9999032020568848,
+      "page": 7,
+      "has_mask": true,
+      "table_id": "table_7_1",
+      "file_path": "paper_figures\\tables\\table_page7_1.png",
+      "caption": "",
+      "text_content": "n] which was translated into [l\u2019 \nhomme]. This is not helpful for\nmine whether it should be trans\nnaturally by letting the model lo\nel was able to correctly translat\nses in Fig. 3. An additional bene\nrget phrases of different lengths,\no or from nowhere ([NULL]) (s\nel (RNNsearch) is much better th\nes. This is likely due to the fact \na fixed-length vector perfectly, \nround a particular word.\nom the test set:\n doctor to admit a patient to a \nsis or a procedure, based on his ",
+      "dimensions": {
+        "width": 372,
+        "height": 663
+      }
+    },
+    {
+      "type": "table",
+      "bbox": [
+        300.8253173828125,
+        427.89447021484375,
+        424.1204833984375,
+        648.1774291992188
+      ],
+      "confidence": 0.9999274015426636,
+      "page": 8,
+      "has_mask": true,
+      "table_id": "table_8_1",
+      "file_path": "paper_figures\\tables\\table_page8_1.png",
+      "caption": "",
+      "text_content": "s importantes\u201d, a-t-il ajout\u00b4e.\nsented already, these qualitativ\necture enables far more reliable\n translations of long source sen\nTranslate along with the referen\nol with an input symbol was pr\nnthesis. Handwriting synthesis\nven sequence of characters. In \nights of the annotations, where\nicted from an alignment model\non such that the location increas\nin (Graves, 2013), the modes o",
+      "dimensions": {
+        "width": 371,
+        "height": 662
+      }
+    },
+    {
+      "type": "table",
+      "bbox": [
+        301.3277282714844,
+        427.9219970703125,
+        424.33013916015625,
+        648.7333374023438
+      ],
+      "confidence": 0.9999246597290039,
+      "page": 9,
+      "has_mask": true,
+      "table_id": "table_9_1",
+      "file_path": "paper_figures\\tables\\table_page9_1.png",
+      "caption": "",
+      "text_content": "ed by Cho et al. (2014b) and P\ne that addresses this issue. We\nh for a set of input words, or the\nt word. This frees the model fro\nor, and also lets the model focus \nrd. This has a major positive im\neld good results on longer sent\n of the pieces of the translation\nwards a better log-probability o\nh, on the task of English-to-Fren\nrch outperforms the convention\nf the sentence length and that i\nthe qualitative analysis where \nwe were able to conclude that \nords, or their annotations, in the\nh achieved a translation perform",
+      "dimensions": {
+        "width": 370,
+        "height": 664
+      }
+    },
+    {
+      "type": "table",
+      "bbox": [
+        301.197265625,
+        428.4726867675781,
+        423.8590087890625,
+        648.4498901367188
+      ],
+      "confidence": 0.9999203681945801,
+      "page": 10,
+      "has_mask": true,
+      "table_id": "table_10_1",
+      "file_path": "paper_figures\\tables\\table_page10_1.png",
+      "caption": "",
+      "text_content": "encoder-decoder for statistical m\n Natural Language Processing \nnd Bengio, Y. (2014b). On the \noaches. In Eighth Workshop on\npear.\nwartz, R., and Makhoul, J. (201\nchine translation. In Association\nive hetero-associative memorie\nditors, Biological and Artificial \nLecture Notes in Computer Scien\nCourville, A., and Bengio, Y. (2\nnal Conference on Machine Lea\nh recurrent neural networks. In",
+      "dimensions": {
+        "width": 369,
+        "height": 661
+      }
+    },
+    {
+      "type": "table",
+      "bbox": [
+        300.654296875,
+        429.3204345703125,
+        424.24652099609375,
+        649.6952514648438
+      ],
+      "confidence": 0.9999042749404907,
+      "page": 11,
+      "has_mask": true,
+      "table_id": "table_11_1",
+      "file_path": "paper_figures\\tables\\table_page11_1.png",
+      "caption": "",
+      "text_content": "hine translation using automati\ntructure in Statistical Translatio\nional recurrent neural networks\nation models for phrase-based\nProceedings of the 24th Internati\n071\u20131080. Indian Institute of Te\nL. (2006). Continuous space la\ngs of the COLING/ACL on Mai\nmputational Linguistics.\nequence to sequence learning w\ng Systems (NIPS 2014).\nptive learning rate method.",
+      "dimensions": {
+        "width": 372,
+        "height": 663
+      }
+    },
+    {
+      "type": "table",
+      "bbox": [
+        300.8382873535156,
+        428.1107177734375,
+        424.22845458984375,
+        648.2656860351562
+      ],
+      "confidence": 0.999923586845398,
+      "page": 12,
+      "has_mask": true,
+      "table_id": "table_12_1",
+      "file_path": "paper_figures\\tables\\table_page12_1.png",
+      "caption": "",
+      "text_content": "ible, we omit bias terms to mak\naintain its previous activation, a\nhe previous state should be reset\n) + Uzsi\u22121 + Czci) ,\n) + Ursi\u22121 + Crci) ,\nutput probability (Eq. (4)) as a \nden layer of maxout units (Good\neach word) with a softmax funct\nering that the model needs to be\ny. In order to reduce computati",
+      "dimensions": {
+        "width": 371,
+        "height": 661
+      }
+    },
+    {
+      "type": "table",
+      "bbox": [
+        300.4791564941406,
+        428.48846435546875,
+        424.44970703125,
+        648.2020874023438
+      ],
+      "confidence": 0.9998929500579834,
+      "page": 13,
+      "has_mask": true,
+      "table_id": "table_13_1",
+      "file_path": "paper_figures\\tables\\table_page13_1.png",
+      "caption": "",
+      "text_content": "uted similarly. We share the word\nnlike the weight matrices.\ntes to to obtain the annotations\n\ufffd\u2212\u2192h i\n\u2190\u2212h i\n\ufffd\notations from the encoder is com\n\u25e6si\u22121 + zi \u25e6\u02dcsi,\n + U [ri \u25e6si\u22121] + Cci)\nUzsi\u22121 + Czci)\nUrsi\u22121 + Crci)\nanguage. W, Wz, Wr \u2208Rn\u00d7m, \n m and n are the word embedd\n The initial hidden state sis ",
+      "dimensions": {
+        "width": 373,
+        "height": 660
+      }
+    },
+    {
+      "type": "table",
+      "bbox": [
+        300.7691345214844,
+        428.1328430175781,
+        424.36517333984375,
+        648.08251953125
+      ],
+      "confidence": 0.9998846054077148,
+      "page": 14,
+      "has_mask": true,
+      "table_id": "table_14_1",
+      "file_path": "paper_figures\\tables\\table_page14_1.png",
+      "caption": "",
+      "text_content": "is computed by\nVoEyi\u22121 + Coci.\no \u2208R2l\u00d72n are weight matrices.\n14) with a single maxout hidden\nof a hidden layer n is 1000, th\nxout hidden layer in the deep o\nn\u2032 is 1000.\nUz, Ur, \u2190\u2212\nU , \u2190\u2212\nU z, \u2190\u2212\nU r, \u2212\u2192\nU , \u2212\u2192\nU z and\nd them by sampling each elemen\nthe elements of Va and all the bi",
+      "dimensions": {
+        "width": 372,
+        "height": 661
+      }
+    },
+    {
+      "type": "table",
+      "bbox": [
+        301.306640625,
+        427.85113525390625,
+        424.3194885253906,
+        648.6302490234375
+      ],
+      "confidence": 0.9999282360076904,
+      "page": 15,
+      "has_mask": true,
+      "table_id": "table_15_1",
+      "file_path": "paper_figures\\tables\\table_page15_1.png",
+      "caption": "",
+      "text_content": "us importantes\u201d, a-t-il ajout\u00b4e.\ndes initiatives du Disney pour \u201dpro\ns liens avec les lecteurs num\u00b4eriques\n des efforts de Disney pour \u201dprolon\nons avec des publics via des platef\n.\ndes efforts de Disney `a \u201c\u00b4etendre la\navec le public par le biais des plat\nant\u201d, at-il ajout\u00b4e.\n, Mr Blair stated that there was noth\nthat could lead to criminal charges\n. Blair a affirm\u00b4e qu\u2019il n\u2019y avait rien \nes\u201d pouvant mener au d\u00b4ep\u02c6ot d\u2019une ac\ne jeudi, M. Blair a dit qu\u2019il n\u2019y ava\non raisonnable\u201d pouvant entra\u02c6\u0131ner d\neudi, M. Blair a d\u00b4eclar\u00b4e qu\u2019il n\u2019y ava\nonnable\u201d qui pourrait conduire `a d",
+      "dimensions": {
+        "width": 370,
+        "height": 663
+      }
+    }
+  ],
+  "figure_extraction_method": "publaynet",
+  "total_figures_extracted": 0,
+  "total_tables_extracted": 15
+}

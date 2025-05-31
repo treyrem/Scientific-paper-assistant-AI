@@ -21,17 +21,6 @@ opencv-python     # image I/O & processing
 
 
 
-# (Later, you’ll add:)
-# - transformers         # for SciBERT
-# - sentencepiece        # if needed by your summarizer
-# - requests             # for GitHub/web scraping
-# - regex                # if you want the PyPI regex library
-
-
-# to install detectron
-#  pip install -U \
-#   "git+https://github.com/facebookresearch/detectron2.git@main"
-
 
 #layoutparser>=0.3.4
 pdfminer.six>=20221105
@@ -45,3 +34,8 @@ requests
 pandas
 altair
 duckduckgo-search>=4.1.0
+
+detectron2
+opencv-python
+requests
+pathlib

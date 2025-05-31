@@ -67,6 +67,7 @@ try:
 except nltk.downloader.DownloadError:
     nltk.download("stopwords", quiet=True)
 
+from publaynet_figure_extractor import extract_figures_with_publaynet
 
 # Setup logging
 logger = logging.getLogger(__name__)
@@ -145,6 +146,13 @@ class PaperAnalysis:
     # Store OpenAI generated summaries
     full_summary: str = ""
     significance: str = ""
+
+    # ADD THESE NEW FIELDS FOR FIGURE EXTRACTION:
+    figures: List[Dict] = field(default_factory=list)
+    tables: List[Dict] = field(default_factory=list)
+    figure_extraction_method: str = ""
+    total_figures_extracted: int = 0
+    total_tables_extracted: int = 0
 
     def to_json(self) -> str:
         """Convert the analysis to a JSON string"""
@@ -785,6 +793,41 @@ class PaperProcessor:
         normalized_score = min(1.0, score / 5.0)
         return round(normalized_score, 2)
 
+    def extract_figures_and_layout(self, pdf_path: str, output_dir: str = None) -> Dict:
+        """Extract figures and tables using PubLayNet model."""
+        self.logger.info("Starting figure and layout extraction with PubLayNet...")
+
+        if output_dir is None:
+            # Create output directory next to the PDF
+            pdf_dir = os.path.dirname(pdf_path)
+            pdf_name = os.path.splitext(os.path.basename(pdf_path))[0]
+            output_dir = os.path.join(pdf_dir, f"{pdf_name}_figures")
+
+        try:
+            # Call the PubLayNet figure extraction
+            figure_results = extract_figures_with_publaynet(pdf_path, output_dir)
+
+            self.logger.info(
+                f"Figure extraction completed using method: {figure_results['method']}"
+            )
+            self.logger.info(
+                f"Extracted {figure_results['total_figures']} figures and {figure_results['total_tables']} tables"
+            )
+
+            return figure_results
+
+        except Exception as e:
+            self.logger.error(f"Error during figure extraction: {e}")
+            return {
+                "success": False,
+                "figures": [],
+                "tables": [],
+                "total_figures": 0,
+                "total_tables": 0,
+                "method": "failed",
+                "error": str(e),
+            }
+
     # --- Extractive Summarization Functions ---
     def extract_tfidf_sentences(self, text: str, num_sentences: int = 3) -> str:
         """Extracts the top N sentences from text based on TF-IDF scores."""
@@ -1185,26 +1228,41 @@ Synthesized {context}:"""
         return metadata
 
     # --- Main Processing Pipeline ---
-    def process_paper(self, pdf_path: str) -> Optional[PaperAnalysis]:
-        """Process a paper: extract text, metadata, sections, concepts, summaries."""
+    def process_paper(
+        self, pdf_path: str, extract_figures: bool = True, figure_output_dir: str = None
+    ) -> Optional[PaperAnalysis]:
+        """Process a paper: extract text, metadata, sections, concepts, summaries, and figures."""
         self.logger.info(f"Starting processing for paper: {pdf_path}")
+
         # 1. Extract text
         blocks_with_page, full_plain_text, pages_plain_text_data = (
             self.extract_text_from_pdf(pdf_path)
         )
         if not blocks_with_page and not full_plain_text:
             return None
-        # 2. Identify sections
+
+        # 2. Extract figures and layout (NEW STEP)
+        figure_results = {}
+        if extract_figures:
+            figure_results = self.extract_figures_and_layout(
+                pdf_path, figure_output_dir
+            )
+
+        # 3. Identify sections
         sections = self.identify_sections(
             blocks_with_page, full_plain_text, pages_plain_text_data
         )
-        # 3. Extract metadata
+
+        # 4. Extract metadata
         metadata = self.extract_metadata(full_plain_text, pages_plain_text_data)
-        # 4. Extract key concepts and keywords
+
+        # 5. Extract key concepts and keywords
         key_concepts, keywords = self.extract_key_concepts(sections)
-        # 5. Generate EXTRACTIVE summaries and SYNTHESIZE with OpenAI
+
+        # 6. Generate EXTRACTIVE summaries and SYNTHESIZE with OpenAI
         summaries = self.generate_summaries(sections)
-        # 6. Create the analysis object
+
+        # 7. Create the analysis object
         analysis = PaperAnalysis(
             title=metadata.get("title"),
             authors=metadata.get("authors", []),
@@ -1213,12 +1271,8 @@ Synthesized {context}:"""
             sections=sections,
             key_concepts=key_concepts,
             keywords=keywords,
-            full_summary=summaries.get(
-                "full", ""
-            ),  # Get the OpenAI synthesized summary (or fallback)
-            significance=summaries.get(
-                "significance", ""
-            ),  # Get the OpenAI synthesized significance (or fallback)
+            full_summary=summaries.get("full", ""),
+            significance=summaries.get("significance", ""),
             # Store the intermediate extractive summaries as well
             abstract_summary=summaries.get("abstract_summary"),
             introduction_summary=summaries.get("introduction_summary"),
@@ -1226,7 +1280,14 @@ Synthesized {context}:"""
             results_summary=summaries.get("results_summary"),
             discussion_summary=summaries.get("discussion_summary"),
             conclusion_summary=summaries.get("conclusion_summary"),
+            # ADD THE FIGURE EXTRACTION RESULTS:
+            figures=figure_results.get("figures", []),
+            tables=figure_results.get("tables", []),
+            figure_extraction_method=figure_results.get("method", "none"),
+            total_figures_extracted=figure_results.get("total_figures", 0),
+            total_tables_extracted=figure_results.get("total_tables", 0),
         )
+
         self.logger.info(f"Finished processing paper: {pdf_path}")
         return analysis
 
@@ -1234,7 +1295,7 @@ Synthesized {context}:"""
 def main():
     """Main function to run the paper processor from command line"""
     parser = argparse.ArgumentParser(
-        description="Process academic papers (Layout + Extractive + OpenAI Synthesis)"
+        description="Process academic papers (Layout + Extractive + OpenAI Synthesis + Figure Extraction)"
     )
     parser.add_argument("pdf_path", help="Path to the PDF file to process")
     parser.add_argument(
@@ -1249,14 +1310,27 @@ def main():
         help="Disable GPU usage (for ML refinement if enabled)",
     )
     parser.add_argument("--debug", action="store_true", help="Enable debug logging")
-    # --- Add OpenAI arguments ---
-    # **** REMOVED --openai-key argument ****
+
+    # ADD THESE NEW ARGUMENTS FOR FIGURE EXTRACTION:
+    parser.add_argument(
+        "--extract-figures",
+        action="store_true",
+        default=True,
+        help="Extract figures and tables using PubLayNet (default: True)",
+    )
+    parser.add_argument(
+        "--no-figures", action="store_true", help="Skip figure extraction"
+    )
+    parser.add_argument(
+        "--figure-output",
+        help="Directory to save extracted figures (default: auto-generated)",
+    )
+
     parser.add_argument(
         "--openai-model",
         help="OpenAI model to use for synthesis",
         default="gpt-3.5-turbo",
     )
-    # --- End OpenAI arguments ---
 
     args = parser.parse_args()
 
@@ -1314,27 +1388,53 @@ def main():
             os.makedirs(output_dir, exist_ok=True)
 
     try:
-        # Pass loaded OpenAI key to processor
         processor = PaperProcessor(
             use_gpu=not args.no_gpu,
-            openai_api_key=openai_api_key,  # Pass the loaded key
+            openai_api_key=openai_api_key,
             openai_model=args.openai_model,
         )
+
         logger.info(f"Processing paper: {args.pdf_path}")
-        analysis = processor.process_paper(args.pdf_path)
+
+        # MODIFY THIS LINE TO INCLUDE FIGURE EXTRACTION:
+        analysis = processor.process_paper(
+            args.pdf_path,
+            extract_figures=args.extract_figures and not args.no_figures,
+            figure_output_dir=args.figure_output,
+        )
+
         if analysis:
             logger.info(f"Attempting to save analysis to: {args.output}")
             analysis.save_to_file(args.output)
             print(f"\nAnalysis complete. Results saved to: {args.output}")
             print(
-                "\n=== Paper Analysis Quick Look (OpenAI Synthesis) ==="
-            )  # Updated title
+                "\n=== Paper Analysis Quick Look (OpenAI Synthesis + Figure Extraction) ==="
+            )
             print(f"Title: {analysis.title or 'N/A'}")
             print(
                 f"Authors: {', '.join(analysis.authors) if analysis.authors else 'N/A'}"
             )
             print(f"Year: {analysis.publication_year or 'N/A'}")
             print(f"DOI: {analysis.doi or 'N/A'}")
+
+            # ADD FIGURE EXTRACTION SUMMARY:
+            print(f"\n=== Figure Extraction Results ===")
+            print(f"Method used: {analysis.figure_extraction_method}")
+            print(f"Figures extracted: {analysis.total_figures_extracted}")
+            print(f"Tables extracted: {analysis.total_tables_extracted}")
+
+            if analysis.figures:
+                print(f"\nExtracted Figures:")
+                for i, figure in enumerate(analysis.figures[:3]):  # Show first 3
+                    print(
+                        f"  {i+1}. {figure.get('figure_id', 'Unknown')} (Page {figure.get('page', '?')})"
+                    )
+                    if figure.get("caption"):
+                        print(f"     Caption: {figure['caption'][:100]}...")
+                    print(f"     File: {figure.get('file_path', 'N/A')}")
+                if len(analysis.figures) > 3:
+                    print(f"  ... and {len(analysis.figures) - 3} more figures")
+
             # Display synthesized summaries
             if analysis.full_summary:
                 print(
@@ -1344,6 +1444,7 @@ def main():
                 print(
                     f"\nSynthesized Significance ({args.openai_model}):\n{analysis.significance}"
                 )
+
             print("\nKeywords:")
             print(
                 ", ".join(analysis.keywords) if analysis.keywords else "None extracted"

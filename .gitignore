@@ -2,4 +2,11 @@
 /api_keys
 /.streamlit
 /.vscode
-/__pycache__model_final.pth
+/__pycache__
+/all the code
+/extracted_figures
+/logs
+/models
+/output
+/paper_figures
+/papers
