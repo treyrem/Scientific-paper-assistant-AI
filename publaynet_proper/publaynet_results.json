@@ -1,0 +1,8 @@
+{
+  "pdf_path": "paper.pdf",
+  "total_pages": 15,
+  "figures": [],
+  "tables": [],
+  "method": "publaynet_proper",
+  "model_type": "detectron2"
+}

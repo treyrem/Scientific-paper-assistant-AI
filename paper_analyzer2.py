@@ -67,7 +67,7 @@ try:
 except nltk.downloader.DownloadError:
     nltk.download("stopwords", quiet=True)
 
-from publaynet_figure_extractor import extract_figures_with_publaynet
+from proper_publaynet_extractor import extract_figures_with_publaynet
 
 # Setup logging
 logger = logging.getLogger(__name__)
