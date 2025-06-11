@@ -93,7 +93,7 @@ Chatbot: Ask questions about the paper's content
 How the System Works
 PDF Processing
 
-The system analyzes PDFs using layout analysis to identify sections by detecting:
+The system analyzes PDFs using layout analysis via fine-tuned Publaynet model, additionally as a fallback it is able to identify sections by detecting:
 
 Font size differences
 Bold text
@@ -125,10 +125,11 @@ It loads the API key from a .env file located at a specific path.
 Implementation Details
 paper_analyzer2.py
 
+Uses fine-tuned Publaynet model downloaded through hugging face for PDF text extraction.
 Uses PyMuPDF (fitz) for PDF text extraction
 Implements layout analysis to identify sections
 Extracts metadata using regex patterns
-Uses TF-IDF for extractive summarization
+Uses TF-IDF with fine-tuned Scibert model for NER for extractive summarization
 Integrates with OpenAI for synthesized summaries
 
 paper_chatbot.py
@@ -199,7 +200,7 @@ Limitations
 Best results with research papers following standard academic formatting
 May struggle with papers containing complex layouts or non-standard formatting
 Summaries and extractions are automated and may not capture all nuances
-OpenAI integration required for advanced features (synthesized summaries, quiz, chatbot)
+OpenAI integration, Publaynet and Scibert models required for advanced features (synthesized summaries, quiz, chatbot)
 
 Contributing
 Contributions are welcome! Please feel free to submit a Pull Request.
